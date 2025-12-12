@@ -1,4 +1,5 @@
 // src/pages/ViewLeadPage.jsx
+
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import API from "../api/api";
@@ -11,95 +12,74 @@ function ViewLeadPage() {
   const [lead, setLead] = useState(null);
   const [loadingAI, setLoadingAI] = useState(false);
   const [templateFull, setTemplateFull] = useState(false);
-  const [publishing, setPublishing] = useState(false);  // ⭐ NEW
+  const [publishing, setPublishing] = useState(false);
+  const [whatsappLoading, setWhatsappLoading] = useState(false);
 
-  /* ---------------------------------------
-      LOAD LEAD
-  ---------------------------------------- */
+  /* ------------------------------ LOAD LEAD ------------------------------ */
   useEffect(() => {
-    async function loadLead() {
-      try {
-        const res = await API.get(`/leads/${id}`);
-
-        const processedLead = {
-          name: res.data.name || "",
-          phone: res.data.phone || "",
-          address: res.data.address || "",
-          category: res.data.category || "",
-          rating: res.data.rating || 0,
-          reviews: res.data.reviews || 0,
-          gmap_link: res.data.gmap_link || "",
-          images: res.data.images || [],
-          thumbnail: res.data.thumbnail || "",
-          generated_images: res.data.generated_images || [],
-
-          hero_title: res.data.hero_title || "",
-          hero_subtitle: res.data.hero_subtitle || "",
-          description: res.data.description || "",
-          cta_title: res.data.cta_title || "",
-          cta_button: res.data.cta_button || "",
-          testimonials: res.data.testimonials || [],
-
-          web_url: res.data.web_url || "",  // ⭐ NEW
-        };
-
-        setLead(processedLead);
-      } catch (err) {
-        console.error("Error loading lead:", err);
-      }
-    }
-
     loadLead();
+    // eslint-disable-next-line
   }, [id]);
 
-  if (!lead) return <p className="p-8">Loading…</p>;
+  async function loadLead() {
+    try {
+      const res = await API.get(`/leads/${id}`); // ✅ FIXED (no /api)
+      setLead(res.data);
+    } catch (err) {
+      console.error("Error loading lead:", err);
+      alert("Failed to load lead.");
+    }
+  }
 
-  /* ---------------------------------------
-      AI Enhance Button
-  ---------------------------------------- */
+  /* ------------------------------ AI ENHANCE ------------------------------ */
   async function handleAIEnhance() {
     try {
       setLoadingAI(true);
-      const response = await API.post("/ai/enhance", { lead });
-      const ai = response.data.enhanced;
 
-      setLead((prev) => ({ ...prev, ...ai }));
-      alert("✨ AI Enhanced Content Applied!");
+      const response = await API.post(`/ai/enhance`, { lead }); // ✅ FIXED
+
+      if (response?.data?.enhanced) {
+        setLead((prev) => ({ ...prev, ...response.data.enhanced }));
+        alert("✨ AI Enhanced!");
+      }
     } catch (err) {
       console.error(err);
-      alert("AI Enhancement Failed");
-    } finally {
-      setLoadingAI(false);
+      alert("AI failed");
     }
+    setLoadingAI(false);
   }
 
-  /* ---------------------------------------
-      SAVE CHANGES ONLY
-  ---------------------------------------- */
+  /* ------------------------------ SAVE LEAD ------------------------------ */
   async function handleSave() {
     try {
-      await API.patch(`/leads/${id}`, lead);
-      alert("Saved Successfully!");
+      await API.patch(`/leads/${id}`, lead); // ✅ FIXED
+      alert("Saved!");
+      loadLead();
     } catch (err) {
       console.error(err);
-      alert("Error saving changes");
+      alert("Save failed");
     }
   }
 
-  /* ---------------------------------------
-      STEP 6 — PUBLISH STATIC WEBSITE
-  ---------------------------------------- */
+  /* ------------------------------ PUBLISH ------------------------------ */
   async function handlePublish() {
     try {
       setPublishing(true);
 
-      // 🔥 call backend to publish
-      const res = await API.post(`/deploy/publish/${id}`);
+      // 1️⃣ Publish website
+      const res = await API.post(`/deploy/publish/${id}`); // ✅ FIXED
+      const url = res?.data?.url;
+      if (url) setLead((prev) => ({ ...prev, web_url: url }));
 
-      // backend returns:  { url: "https://something.netlify.app" }
-      setLead((prev) => ({ ...prev, web_url: res.data.url }));
+      // 2️⃣ Log WhatsApp
+      await API.post(`/leads/${id}/whatsapp-log`); // ✅ FIXED
 
-      alert("🚀 Published Successfully!");
+      // 3️⃣ Open WhatsApp redirect
+      // window.open(`http://localhost:5009/api/leads/w/${id}`, "_blank");
+
+      // 4️⃣ Navigate to follow-up page
+      navigate(`/followup/${id}`);
+
     } catch (err) {
       console.error(err);
       alert("Publishing failed");
@@ -107,6 +87,27 @@ function ViewLeadPage() {
       setPublishing(false);
     }
   }
+
+  /* ------------------------------ MANUAL WHATSAPP ------------------------------ */
+  async function handleWhatsAppManual() {
+    try {
+      setWhatsappLoading(true);
+
+      await API.post(`/leads/${id}/whatsapp-log`); // ✅ FIXED
+      // window.open(`http://localhost:5009/api/leads/w/${id}`, "_blank");
+
+      navigate(`/followup/${id}`);
+    } catch (err) {
+      console.error(err);
+      alert("WhatsApp failed");
+    } finally {
+      setWhatsappLoading(false);
+    }
+  }
+
+  if (!lead) return <p className="p-8">Loading…</p>;
+
+  const fields = ["name", "phone", "address", "category", "cta_title", "cta_button"];
 
   return (
     <div className="min-h-screen bg-[#F9FBF9] flex flex-col">
@@ -116,7 +117,10 @@ function ViewLeadPage() {
         <h1 className="text-2xl font-extrabold text-white">View Lead</h1>
 
         <div className="flex gap-3">
-          <button onClick={() => navigate("/all-leads")} className="bg-white/20 text-white px-4 py-2 rounded-xl">
+          <button
+            onClick={() => navigate("/all-leads")}
+            className="bg-white/20 text-white px-4 py-2 rounded-xl"
+          >
             ← Back
           </button>
 
@@ -129,81 +133,104 @@ function ViewLeadPage() {
         </div>
       </nav>
 
-      {/* MAIN LAYOUT */}
+      {/* MAIN CONTENT */}
       <div className="flex flex-1">
 
-        {/* LEFT: TEMPLATE PREVIEW */}
+        {/* TEMPLATE PREVIEW */}
         <div
           className={`h-screen overflow-auto border-r transition-all duration-300 ${
             templateFull ? "w-full" : "w-1/2"
           }`}
         >
           {(() => {
-            const TemplateComponent = getTemplateByCategory(lead.category);
-            return <TemplateComponent lead={lead} />;
+            const Template = getTemplateByCategory(lead.category);
+            return <Template lead={lead} />;
           })()}
         </div>
 
-        {/* RIGHT: EDIT PANEL */}
+        {/* EDIT PANEL */}
         {!templateFull && (
           <div className="w-1/2 h-screen overflow-auto p-8 bg-gray-50">
+            
+            <h2 className="text-2xl font-bold mb-6">Edit Lead</h2>
 
-            {/* HEADER */}
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold">Edit Lead</h2>
-
+            <div className="flex gap-3 mb-6">
               <button
                 onClick={handleAIEnhance}
                 disabled={loadingAI}
-                className="flex items-center gap-2 bg-purple-600 text-white px-5 py-2 rounded-xl shadow disabled:opacity-60"
+                className="bg-purple-600 text-white px-5 py-2 rounded-xl"
               >
                 {loadingAI ? "Enhancing…" : "✨ AI Enhance"}
               </button>
-            </div>
 
-            {/* FORM */}
-            <div className="flex flex-col gap-4">
-              <input className="border p-3 rounded" value={lead.name} onChange={(e) => setLead({ ...lead, name: e.target.value })} placeholder="Business Name" />
-              <input className="border p-3 rounded" value={lead.phone} onChange={(e) => setLead({ ...lead, phone: e.target.value })} placeholder="Phone" />
-              <input className="border p-3 rounded" value={lead.address} onChange={(e) => setLead({ ...lead, address: e.target.value })} placeholder="Address" />
-              <input className="border p-3 rounded" value={lead.category} onChange={(e) => setLead({ ...lead, category: e.target.value })} placeholder="Category" />
-
-              <textarea className="border p-3 rounded" value={lead.hero_title} onChange={(e) => setLead({ ...lead, hero_title: e.target.value })} placeholder="Hero Title" />
-              <textarea className="border p-3 rounded" value={lead.hero_subtitle} onChange={(e) => setLead({ ...lead, hero_subtitle: e.target.value })} placeholder="Hero Subtitle" />
-              <textarea className="border p-3 rounded h-32" value={lead.description} onChange={(e) => setLead({ ...lead, description: e.target.value })} placeholder="Business Description" />
-
-              <input className="border p-3 rounded" value={lead.cta_title} onChange={(e) => setLead({ ...lead, cta_title: e.target.value })} placeholder="CTA Title" />
-              <input className="border p-3 rounded" value={lead.cta_button} onChange={(e) => setLead({ ...lead, cta_button: e.target.value })} placeholder="CTA Button" />
-
-              {/* SAVE CHANGES */}
               <button
                 onClick={handleSave}
-                className="bg-blue-600 text-white px-6 py-3 rounded-lg shadow hover:bg-blue-700"
+                className="bg-blue-600 text-white px-5 py-2 rounded-xl"
               >
-                Save Changes
+                Save
               </button>
+            </div>
 
-              {/* PUBLISH BUTTON */}
+            {fields.map((field) => (
+              <input
+                key={field}
+                className="border p-3 rounded mb-3"
+                value={lead[field] || ""}
+                onChange={(e) => setLead({ ...lead, [field]: e.target.value })}
+                placeholder={field}
+              />
+            ))}
+
+            <textarea
+              className="border p-3 rounded mb-3"
+              value={lead.hero_title || ""}
+              onChange={(e) => setLead({ ...lead, hero_title: e.target.value })}
+              placeholder="Hero Title"
+            />
+
+            <textarea
+              className="border p-3 rounded mb-3"
+              value={lead.hero_subtitle || ""}
+              onChange={(e) => setLead({ ...lead, hero_subtitle: e.target.value })}
+              placeholder="Hero Subtitle"
+            />
+
+            <textarea
+              className="border p-3 rounded mb-3 h-32"
+              value={lead.description || ""}
+              onChange={(e) => setLead({ ...lead, description: e.target.value })}
+              placeholder="Description"
+            />
+
+            {/* ACTION BUTTONS */}
+            <div className="flex gap-3 mt-4">
               <button
                 onClick={handlePublish}
                 disabled={publishing}
-                className="bg-purple-700 text-white px-6 py-3 rounded-xl shadow hover:bg-purple-800 disabled:opacity-60"
+                className="bg-purple-700 text-white px-6 py-3 rounded-xl"
               >
-                {publishing ? "🚀 Publishing..." : "Publish Website"}
+                {publishing ? "Publishing…" : "Publish Website"}
               </button>
 
-              {/* SHOW PUBLISHED URL */}
-              {lead.web_url && (
-                <a
-                  href={lead.web_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-blue-600 underline text-lg mt-3"
-                >
-                  🔗 View Live Website
-                </a>
-              )}
+              <button
+                onClick={handleWhatsAppManual}
+                disabled={whatsappLoading}
+                className="bg-green-600 text-white px-4 py-2 rounded-xl"
+              >
+                {whatsappLoading ? "Sending…" : "WhatsApp"}
+              </button>
             </div>
+
+            {lead.web_url && (
+              <a
+                href={lead.web_url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-blue-600 underline mt-4 block"
+              >
+                🔗 View Live Website
+              </a>
+            )}
           </div>
         )}
       </div>
