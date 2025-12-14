@@ -2,7 +2,7 @@ import axios from "axios";
 
 const API = axios.create({
   // baseURL: "http://localhost:5010/api",
-  baseURL:"leadgenerator-backend-production.up.railway.app",
+  baseURL:"leadgenerator-backend-production.up.railway.app/api",
   timeout: 15000,
 });
 
