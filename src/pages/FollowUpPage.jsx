@@ -75,7 +75,7 @@ function LeadDetailModal({ id, onClose, onSaved }) {
       });
 
       await API.patch(`/leads/${id}`, {
-        followup: { ...freshLead.followup, history }, 
+        followup: { ...freshLead.followup, history },
       });
 
       setNote("");
@@ -107,23 +107,20 @@ function LeadDetailModal({ id, onClose, onSaved }) {
   const DetailsTab = (
     <div className="space-y-4">
       <h5 className="font-bold text-gray-700">Contact & Business Info</h5>
-      <p>
-        **Phone:** {lead.phone}
-      </p>
-      <p>
-        **Address:** {lead.address || "N/A"}
-      </p>
-      <p>
-        **Category:** {lead.category || "N/A"}
-      </p>
+      <p>**Phone:** {lead.phone}</p>
+      <p>**Address:** {lead.address || "N/A"}</p>
+      <p>**Category:** {lead.category || "N/A"}</p>
 
-      <h5 className="font-bold text-gray-700 pt-2 border-t">
-        Website & Score
-      </h5>
+      <h5 className="font-bold text-gray-700 pt-2 border-t">Website & Score</h5>
       <p>
         **Website:**{" "}
         {lead.website ? (
-          <a href={lead.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+          <a
+            href={lead.website}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:underline"
+          >
             {lead.website}
           </a>
         ) : (
@@ -131,7 +128,10 @@ function LeadDetailModal({ id, onClose, onSaved }) {
         )}
       </p>
       <p>
-        **Lead Score:** <span className="font-bold text-xl text-[#1ABC9C]">{lead.lead_score}</span>
+        **Lead Score:**{" "}
+        <span className="font-bold text-xl text-[#1ABC9C]">
+          {lead.lead_score}
+        </span>
       </p>
       <p>
         **Google Rating:** {lead.rating} ({lead.reviews} reviews)
@@ -156,7 +156,9 @@ function LeadDetailModal({ id, onClose, onSaved }) {
             </div>
           );
         }) || (
-        <p className="text-gray-500 text-sm italic">No follow-up history yet.</p>
+        <p className="text-gray-500 text-sm italic">
+          No follow-up history yet.
+        </p>
       )}
     </div>
   );
@@ -182,7 +184,7 @@ function LeadDetailModal({ id, onClose, onSaved }) {
       </button>
     </div>
   );
-  
+
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex justify-center p-6">
       <div className="bg-white w-full max-w-4xl rounded-xl p-6 shadow-2xl max-h-[95vh] overflow-auto">
@@ -190,12 +192,17 @@ function LeadDetailModal({ id, onClose, onSaved }) {
         <div className="flex justify-between items-start mb-4 pb-3 border-b-2 border-[#1ABC9C]">
           <div>
             <h3 className="text-3xl font-bold text-gray-800">{lead.name}</h3>
-            <span className={`text-sm font-semibold px-2 py-0.5 rounded-full ${statusClass}`}>
+            <span
+              className={`text-sm font-semibold px-2 py-0.5 rounded-full ${statusClass}`}
+            >
               {currentStatus.replace("_", " ")}
             </span>
           </div>
 
-          <button onClick={onClose} className="text-3xl text-gray-500 hover:text-gray-800 transition">
+          <button
+            onClick={onClose}
+            className="text-3xl text-gray-500 hover:text-gray-800 transition"
+          >
             &times;
           </button>
         </div>
@@ -257,7 +264,6 @@ function LeadDetailModal({ id, onClose, onSaved }) {
   );
 }
 
-
 /* -------------------------------------------------
    MAIN FOLLOW-UP PAGE
 ------------------------------------------------- */
@@ -297,12 +303,12 @@ export default function FollowUpPage() {
   const filteredLeads = useMemo(() => {
     return allLeads.filter((lead) => {
       const currentStatus = lead.followup?.status || "PENDING";
-      
+
       // If Status Filter is ALL, show all leads in the pipeline.
       if (statusFilter === "ALL") {
         return true;
       }
-      
+
       // Otherwise, only show leads matching the selected status.
       return currentStatus === statusFilter;
     });
@@ -313,18 +319,22 @@ export default function FollowUpPage() {
     // window.open(`http://localhost:5009/api/leads/w/${id}`, "_blank");
     setTimeout(loadFollowups, 500);
   }
-  
+
   // Follow-up age is still useful for context, so we keep the helper.
   const getFollowUpAge = (lead) => {
-      const lastSent = lead.followup?.last_whatsapp_sent;
-      if (!lastSent) return "N/A";
-      const diffDays = Math.floor((Date.now() - new Date(lastSent).getTime()) / 86400000);
-      if (diffDays >= 7) return <span className="text-red-600 font-bold">{diffDays} Days</span>;
-      if (diffDays >= 3) return <span className="text-orange-600 font-bold">{diffDays} Days</span>;
-      if (diffDays >= 1) return <span className="text-yellow-600">{diffDays} Day</span>;
-      return "Today";
+    const lastSent = lead.followup?.last_whatsapp_sent;
+    if (!lastSent) return "N/A";
+    const diffDays = Math.floor(
+      (Date.now() - new Date(lastSent).getTime()) / 86400000
+    );
+    if (diffDays >= 7)
+      return <span className="text-red-600 font-bold">{diffDays} Days</span>;
+    if (diffDays >= 3)
+      return <span className="text-orange-600 font-bold">{diffDays} Days</span>;
+    if (diffDays >= 1)
+      return <span className="text-yellow-600">{diffDays} Day</span>;
+    return "Today";
   };
-
 
   return (
     <div className="min-h-screen bg-[#F9FBF9] relative">
@@ -334,22 +344,49 @@ export default function FollowUpPage() {
           Follow-up Dashboard
         </h1>
 
-        <div className="flex gap-2 relative">
+        <div className="flex gap-2 relative items-center">
+          {/* Back */}
           <button
             onClick={() => navigate("/")}
             className="bg-[#1ABC9C] text-white px-4 py-2 rounded hover:bg-teal-700"
           >
             ← Back
           </button>
-          <button onClick={loadFollowups} className="border px-4 py-2 rounded hover:bg-gray-100">
+
+          {/* Refresh */}
+          <button
+            onClick={loadFollowups}
+            className="border px-4 py-2 rounded hover:bg-gray-100"
+          >
             {isLoading ? "Refreshing..." : "Refresh"}
           </button>
 
+          {/* 👥 View Teammates */}
+          <button
+            onClick={() => navigate("/admin/teammates")}
+            className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 font-semibold"
+          >
+            👥 Team Hub
+          </button>
+
+          {/* ➕ Add Teammate */}
+          <button
+            onClick={() => navigate("/admin/teammates/new")}
+            className="px-4 py-2 rounded bg-purple-600 text-white hover:bg-purple-700 font-semibold"
+          >
+            ➕ Onboard Teammate
+          </button>
+
+          {/* Status Filter */}
           <button
             onClick={() => setShowStatusMenu(!showStatusMenu)}
             className="border px-4 py-2 bg-white rounded hover:bg-gray-100 flex items-center"
           >
-            Status Filter: <span className="font-bold ml-1">{statusFilter.replace("_", " ")}</span> ⌄
+            Status:
+            <span className="font-bold ml-1">
+              {statusFilter.replace("_", " ")}
+            </span>
+            ⌄
           </button>
 
           {showStatusMenu && (
@@ -364,7 +401,7 @@ export default function FollowUpPage() {
               ].map((s) => (
                 <button
                   key={s}
-                  className="block w-full text-left px-3 py-2 hover:bg-[#1ABC9C] hover:text-white transition duration-150"
+                  className="block w-full text-left px-3 py-2 hover:bg-[#1ABC9C] hover:text-white"
                   onClick={() => {
                     setStatusFilter(s);
                     setShowStatusMenu(false);
@@ -379,7 +416,7 @@ export default function FollowUpPage() {
       </nav>
 
       {/* DAY FILTER BUTTONS REMOVED HERE
-      */}
+       */}
 
       {/* LEAD LIST TABLE STYLE */}
       <div className="p-6 max-w-7xl mx-auto">
@@ -388,23 +425,33 @@ export default function FollowUpPage() {
           <div className="grid grid-cols-12 bg-gray-100 p-4 font-bold text-gray-700 border-b">
             <div className="col-span-4">Lead Name</div>
             <div className="col-span-2">Status</div>
-            <div className="col-span-2">Last Contact Age</div> {/* Renamed column for clarity */}
+            <div className="col-span-2">Last Contact Age</div>{" "}
+            {/* Renamed column for clarity */}
             <div className="col-span-4 text-right">Actions</div>
           </div>
 
           {/* Lead Rows */}
           <div className="min-h-[400px]">
-            {isLoading && <p className="p-10 text-center text-lg text-gray-600">Loading leads...</p>}
+            {isLoading && (
+              <p className="p-10 text-center text-lg text-gray-600">
+                Loading leads...
+              </p>
+            )}
             {!isLoading && filteredLeads.length === 0 && (
               <p className="p-10 text-center text-lg text-gray-600">
                 No leads match the current filter criteria (
-                <span className="font-semibold">{statusFilter.replace('_', ' ')}</span>).
+                <span className="font-semibold">
+                  {statusFilter.replace("_", " ")}
+                </span>
+                ).
               </p>
             )}
 
             {filteredLeads.map((lead) => (
-              <div key={lead._id} className="grid grid-cols-12 items-center p-4 border-b hover:bg-gray-50 transition duration-150">
-                
+              <div
+                key={lead._id}
+                className="grid grid-cols-12 items-center p-4 border-b hover:bg-gray-50 transition duration-150"
+              >
                 {/* Name and Phone */}
                 <div className="col-span-4">
                   <h3
@@ -418,11 +465,15 @@ export default function FollowUpPage() {
 
                 {/* Status */}
                 <div className="col-span-2">
-                  <span className={`text-xs font-semibold px-2 py-1 rounded-full ${getStatusColor(lead.followup?.status || "PENDING")}`}>
+                  <span
+                    className={`text-xs font-semibold px-2 py-1 rounded-full ${getStatusColor(
+                      lead.followup?.status || "PENDING"
+                    )}`}
+                  >
                     {lead.followup?.status || "PENDING"}
                   </span>
                 </div>
-                
+
                 {/* Follow-up Age */}
                 <div className="col-span-2 text-sm font-medium">
                   {getFollowUpAge(lead)}

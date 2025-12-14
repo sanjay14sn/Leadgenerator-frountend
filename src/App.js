@@ -1,38 +1,124 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+ // src/App.js
+import React from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
+/* -------------------- PAGES -------------------- */
+import LoginPage from "./pages/LoginPage";
 import Home from "./pages/Home";
-import BulkUpload from "./pages/BulkUpload";
 import AllLeadsPage from "./pages/AllLeadsPage";
-import ViewLeadPage from "./pages/ViewLeadPage";
-import InstaLeads from "./pages/InstaLeads";
 import FollowUpPage from "./pages/FollowUpPage";
-import CloudflareManager from "./pages/CloudflareManager"; // ⭐ ADD THIS
+import ViewLeadPage from "./pages/ViewLeadPage";
 
-function App() {
+/* TEAM MANAGEMENT */
+import TeammatesPage from "./pages/TeammatesPage";
+import AddTeammatePage from "./pages/AddTeammatePage";
+
+/* EXTRA MODULES */
+import InstaLeads from "./pages/InstaLeads";
+import CloudflareManager from "./pages/CloudflareManager";
+
+/* ROUTE GUARD */
+import PrivateRoute from "./routes/PrivateRoute";
+
+export default function App() {
   return (
-    <Router>
+    <BrowserRouter>
       <Routes>
 
-        <Route path="/" element={<Home />} />
+        {/* ---------------- PUBLIC ---------------- */}
+        <Route path="/login" element={<LoginPage />} />
 
-        <Route path="/instaleads" element={<InstaLeads />} />
+        {/* ---------------- DASHBOARD ---------------- */}
+        <Route
+          path="/"
+          element={
+            <PrivateRoute>
+              <Home />
+            </PrivateRoute>
+          }
+        />
 
-        <Route path="/bulk-upload" element={<BulkUpload />} />
+        {/* ---------------- LEADS ---------------- */}
+        <Route
+          path="/all-leads"
+          element={
+            <PrivateRoute>
+              <AllLeadsPage />
+            </PrivateRoute>
+          }
+        />
 
-        <Route path="/all-leads" element={<AllLeadsPage />} />
+        <Route
+          path="/lead/:id"
+          element={
+            <PrivateRoute>
+              <ViewLeadPage />
+            </PrivateRoute>
+          }
+        />
 
-        <Route path="/view/:id" element={<ViewLeadPage />} />
+        <Route
+          path="/followups"
+          element={
+            <PrivateRoute>
+              <FollowUpPage />
+            </PrivateRoute>
+          }
+        />
 
-        {/* FOLLOW UPS */}
-        <Route path="/followups" element={<FollowUpPage />} />
-        <Route path="/followup/:id" element={<FollowUpPage />} />
+        <Route path="/followup/:id" element={<PrivateRoute><FollowUpPage /></PrivateRoute>} />
 
-        {/* ⭐ CLOUDFLARE MANAGER PAGE */}
-        <Route path="/cloudflare" element={<CloudflareManager />} />
+
+        {/* ---------------- INSTAGRAM ---------------- */}
+        <Route
+          path="/instaleads"
+          element={
+            <PrivateRoute>
+              <InstaLeads />
+            </PrivateRoute>
+          }
+        />
+
+        {/* ---------------- CLOUDFLARE ---------------- */}
+        <Route
+          path="/cloudflare"
+          element={
+            <PrivateRoute>
+              <CloudflareManager />
+            </PrivateRoute>
+          }
+        />
+
+        {/* ---------------- TEAM MANAGEMENT ---------------- */}
+        <Route
+          path="/admin/teammates"
+          element={
+            <PrivateRoute>
+              <TeammatesPage />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/admin/teammates/new"
+          element={
+            <PrivateRoute>
+              <AddTeammatePage />
+            </PrivateRoute>
+          }
+        />
+
+        {/* ---------------- FALLBACK ---------------- */}
+        <Route
+          path="*"
+          element={
+            <div className="min-h-screen flex items-center justify-center text-2xl font-bold">
+              404 – Page Not Found
+            </div>
+          }
+        />
 
       </Routes>
-    </Router>
+    </BrowserRouter>
   );
 }
-
-export default App;

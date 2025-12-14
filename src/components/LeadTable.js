@@ -1,216 +1,169 @@
 import React, { useEffect, useState } from "react";
-import { checkWhatsApp } from "../utils/checkWhatsApp";
-import { updateLeadInDB } from "../utils/updateLead";
+import API from "../api/api";
+import LeadTable from "../components/LeadTable";
 import { useNavigate } from "react-router-dom";
 
-// CLEAN AREA + CITY EXTRACTOR
-function formatAddress(address = "") {
-  if (!address) return "";
+export default function AllLeadsPage() {
+  const [allLeads, setAllLeads] = useState([]);
+  const [filtered, setFiltered] = useState([]);
 
-  const parts = address.split(",").map((p) => p.trim());
-  const area = parts[parts.length - 3] || parts[0] || "";
-  const city = parts[parts.length - 2] || "";
-  return city ? `${area}, ${city}` : area;
-}
+  const [category, setCategory] = useState("");
+  const [score, setScore] = useState("");
+  const [date, setDate] = useState("");
 
-function LeadTable({ leads = [] }) {
-  const [page, setPage] = useState(1);
-  const perPage = 10;
+  const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
 
-  // AUTO ENRICH
+  /* ------------------------------------
+     LOAD ALL LEADS
+  ------------------------------------ */
   useEffect(() => {
-    async function enrichLead(lead) {
-      if (!lead.phone) return;
+    loadData();
+  }, []);
 
-      const wa = await checkWhatsApp(lead.phone);
+  async function loadData() {
+    setLoading(true);
+    try {
+      const res = await API.get("/leads");
+      setAllLeads(res.data);
+      setFiltered(res.data);
+    } catch (err) {
+      console.error("Error loading leads:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-      await updateLeadInDB(lead._id, {
-        whatsapp: wa,
-      });
+  /* ------------------------------------
+     APPLY FILTERS
+  ------------------------------------ */
+  const applyFilters = () => {
+    let list = [...allLeads];
+
+    if (category.trim()) {
+      list = list.filter((l) =>
+        l.category?.toLowerCase().includes(category.toLowerCase())
+      );
     }
 
-    leads.forEach((lead) => enrichLead(lead));
-  }, [leads]);
+    if (score) {
+      list = list.filter((l) => (l.lead_score || 0) >= Number(score));
+    }
 
-  // SORT BY SCORE
-  const sorted = [...leads].sort(
-    (a, b) => (b.lead_score || 0) - (a.lead_score || 0)
-  );
+    if (date) {
+      list = list.filter(
+        (l) => l.createdAt?.slice(0, 10) === date
+      );
+    }
 
-  // PAGINATION
-  const paginated = sorted.slice((page - 1) * perPage, page * perPage);
+    setFiltered(list);
+  };
 
-  if (!Array.isArray(leads) || leads.length === 0) {
-    return (
-      <p className="text-gray-600 mt-4 text-lg">
-        No leads yet. Enter details above and click <strong>Scrape</strong>.
-      </p>
-    );
+  /* ------------------------------------
+     FOLLOW-UP ENTRY POINT (🔥 CORE LOGIC)
+  ------------------------------------ */
+  async function goToFollowUp(leadId) {
+    // ⚠️ DO NOT navigate here
+    // LeadTable already does optimistic UI
+    // We only mark backend state
+
+    await API.post(`/leads/${leadId}/whatsapp-log`);
+
+    // OPTIONAL: If you want auto-redirect uncomment below
+    // navigate("/followup");
   }
 
   return (
-    <div className="overflow-x-auto bg-white shadow-md rounded-xl p-4">
+    <div className="min-h-screen bg-[#F9FBF9]">
 
-      {/* ================= TABLE ================= */}
-      <table className="w-full border-collapse text-sm">
+      {/* TOP BAR */}
+      <nav
+        className="px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-md"
+        style={{ backgroundColor: "#1ABC9C" }}
+      >
+        <h1 className="text-2xl font-bold text-white">All Leads</h1>
 
-        {/* ---------- HEADER ---------- */}
-        <thead className="bg-gray-100 text-left text-gray-700 font-semibold">
-          <tr>
-            <th className="p-3">Business</th>
-            <th className="p-3">Category</th>
-            <th className="p-3">Phone</th>
-            <th className="p-3">Website</th>
-            <th className="p-3">WhatsApp</th>
-            <th className="p-3">Rating</th>
-            <th className="p-3">Score</th>
-            <th className="p-3">Date</th>
-            <th className="p-3">Actions</th>
-          </tr>
-        </thead>
+        <div className="flex gap-3">
+          <button
+            onClick={() => navigate("/")}
+            className="bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg"
+          >
+            ← Back
+          </button>
 
-        {/* ---------- BODY ---------- */}
-        <tbody>
-          {paginated.map((lead) => (
-            <tr key={lead._id} className="border-b hover:bg-gray-50 transition">
+          <button
+            onClick={loadData}
+            className="bg-white text-[#1ABC9C] px-3 py-2 rounded-lg font-semibold"
+          >
+            {loading ? "Refreshing..." : "Refresh"}
+          </button>
 
-              {/* BUSINESS */}
-              <td className="p-3 font-semibold text-gray-900">
-                {lead.name}
-                <div className="text-xs text-gray-500">
-                  {formatAddress(lead.address)}
-                </div>
-              </td>
+          <button
+            onClick={() => navigate("/followup")}
+            className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-indigo-700"
+          >
+            Follow-up Dashboard →
+          </button>
+        </div>
+      </nav>
 
-              {/* ⭐ RESPONSIVE CATEGORY BADGE */}
-              <td className="p-3">
-                <span
-                  className="
-                    inline-flex 
-                    items-center 
-                    whitespace-nowrap 
-                    px-2 py-1 
-                    rounded-full 
-                    bg-blue-100 
-                    text-blue-700 
-                    font-semibold 
-                    text-xs 
-                    max-w-[120px]
-                    overflow-hidden 
-                    text-ellipsis
-                  "
-                >
-                  {lead.category || "—"}
-                </span>
-              </td>
+      {/* PAGE BODY */}
+      <div className="p-6 sm:p-8">
 
-              {/* PHONE */}
-              <td className="p-3">
-                {lead.phone ? (
-                  <a
-                    href={`tel:${lead.phone}`}
-                    className="text-blue-600 underline"
-                  >
-                    {lead.phone}
-                  </a>
-                ) : (
-                  <span className="text-gray-400">No phone</span>
-                )}
-              </td>
+        {/* FILTERS */}
+        <div className="bg-white p-6 rounded-xl shadow-md mb-8">
+          <h2 className="text-lg font-semibold mb-4 text-gray-700">
+            Filters
+          </h2>
 
-              {/* WEBSITE */}
-              <td className="p-3">
-                {lead.website ? (
-                  <a
-                    href={lead.website}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-green-600 underline"
-                  >
-                    Yes
-                  </a>
-                ) : (
-                  <span className="text-red-500 font-semibold">No Website</span>
-                )}
-              </td>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <input
+              placeholder="Category (e.g. Tuition)"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="border border-gray-300 rounded-lg px-4 py-2"
+            />
 
-              {/* WHATSAPP */}
-              <td className="p-3">
-                {lead.whatsapp ? (
-                  <span className="text-green-600 font-bold">✓</span>
-                ) : (
-                  <span className="text-red-500 font-bold">✗</span>
-                )}
-              </td>
+            <select
+              value={score}
+              onChange={(e) => setScore(e.target.value)}
+              className="border border-gray-300 rounded-lg px-4 py-2"
+            >
+              <option value="">Score: Any</option>
+              <option value="80">80+</option>
+              <option value="60">60+</option>
+              <option value="40">40+</option>
+            </select>
 
-              {/* RATING */}
-              <td className="p-3">
-                ⭐ {lead.rating || "—"}
-                <div className="text-xs text-gray-500">
-                  {lead.reviews} reviews
-                </div>
-              </td>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="border border-gray-300 rounded-lg px-4 py-2"
+            />
+          </div>
 
-              {/* SCORE */}
-              <td className="p-3">
-                <span
-                  className={`px-3 py-1 rounded-full text-white font-semibold ${
-                    (lead.lead_score || 0) >= 80
-                      ? "bg-green-600"
-                      : (lead.lead_score || 0) >= 50
-                      ? "bg-yellow-500"
-                      : "bg-red-500"
-                  }`}
-                >
-                  {lead.lead_score ?? 0}
-                </span>
-              </td>
+          <button
+            onClick={applyFilters}
+            className="mt-4 px-6 py-2 bg-[#1ABC9C] text-white rounded-lg font-semibold hover:bg-teal-700"
+          >
+            Apply Filters
+          </button>
+        </div>
 
-              {/* DATE */}
-              <td className="p-3 text-gray-700">
-                {lead.createdAt
-                  ? new Date(lead.createdAt).toLocaleDateString("en-IN")
-                  : "—"}
-              </td>
-
-              {/* ACTIONS */}
-              <td className="p-3">
-                <button
-                  onClick={() => navigate(`/view/${lead._id}`)}
-                  className="px-3 py-1 bg-blue-600 text-white rounded-lg text-xs"
-                >
-                  View
-                </button>
-              </td>
-
-            </tr>
-          ))}
-        </tbody>
-
-      </table>
-
-      {/* ================= PAGINATION ================= */}
-      <div className="flex gap-3 justify-end mt-4">
-        <button
-          disabled={page === 1}
-          onClick={() => setPage(page - 1)}
-          className="px-3 py-1 bg-gray-200 rounded disabled:opacity-40"
-        >
-          Prev
-        </button>
-
-        <button
-          disabled={page * perPage >= leads.length}
-          onClick={() => setPage(page + 1)}
-          className="px-3 py-1 bg-gray-200 rounded disabled:opacity-40"
-        >
-          Next
-        </button>
+        {/* LEAD TABLE */}
+        {loading ? (
+          <div className="p-10 text-center text-gray-600">
+            Loading leads...
+          </div>
+        ) : (
+          <LeadTable
+            leads={filtered}
+            onFollowUp={goToFollowUp}
+          />
+        )}
       </div>
-
     </div>
   );
 }
-
-export default LeadTable;

@@ -1,3 +1,5 @@
+// src/components/templates/TemplateB.jsx
+
 import React from "react";
 import { formatLeadData } from "../../utils/leadFormatter";
 import { useNavigate } from "react-router-dom"; 
@@ -5,16 +7,13 @@ import { useNavigate } from "react-router-dom";
 function TemplateB({ lead }) {
   const data = formatLeadData(lead);
   const navigate = useNavigate(); 
+  
+  // Use the capabilities array from the lead, defaulting to an empty array
+  const capabilities = lead.capabilities || [];
 
   const encodedAddress = encodeURIComponent(data.address);
-  const mapSrc = `https://maps.google.com/maps?q=${encodedAddress}&output=embed`;
-
-  const iconMap = {
-    "Premium Quality": "⭐",
-    "Fast Delivery": "⚡",
-    "Customer Support": "📞",
-    "Affordable Pricing": "💰",
-  };
+  // NOTE: This mapSrc might need adjustment based on your environment
+  const mapSrc = `https://maps.google.com/maps?q=${encodedAddress}&output=embed`; 
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800">
@@ -32,7 +31,7 @@ function TemplateB({ lead }) {
             <span className="text-base ml-2 font-normal">Templates</span>
           </h1>
 
-          <div className="hidden md:flex gap-4 text-sm font-medium"> {/* Hiding contact info on small screens */}
+          <div className="hidden md:flex gap-4 text-sm font-medium">
             <span className="hover:text-teal-400 cursor-pointer">{data.email || "info@domain.com"}</span>
             <span className="hover:text-teal-400 cursor-pointer">{data.phone}</span>
           </div>
@@ -51,13 +50,21 @@ function TemplateB({ lead }) {
                     {lead.hero_subtitle || `Lead, hero subtitle here about services and trust. Trusted by thousands—powered by ${data.name}.`}
                 </p>
 
-                <div className="flex flex-col sm:flex-row gap-4 mt-8"> {/* Added sm:flex-row for responsiveness */}
+                <div className="flex flex-col sm:flex-row gap-4 mt-8">
                     <button className="px-8 py-3 bg-purple-700 text-white font-semibold rounded-lg shadow-lg hover:bg-purple-800 transition transform hover:scale-105">
                         {lead.cta_button || "Discover More"}
                     </button>
-                    <button className="px-8 py-3 border border-gray-300 text-purple-700 font-semibold rounded-lg hover:bg-gray-100 transition">
-                        Get Started
-                    </button>
+                    {/* NEW: Conditional Button for PDF Document */}
+                    {lead.pdf_url && (
+                        <a 
+                            href={lead.pdf_url} 
+                            target="_blank" 
+                            rel="noreferrer"
+                            className="px-8 py-3 border border-purple-700 text-purple-700 font-semibold rounded-lg hover:bg-purple-50 transition flex items-center justify-center"
+                        >
+                            Download Brochure 📄
+                        </a>
+                    )}
                 </div>
             </div>
 
@@ -89,22 +96,22 @@ function TemplateB({ lead }) {
             {/* Capabilities Block (Services) */}
             <div className="p-10">
                 <h3 className="text-3xl font-bold mb-8 text-gray-900">Our Capabilities</h3>
-                {/* CRITICAL CHANGE: Changed grid to be 1 column on mobile, 2 columns on small screens and up */}
+                
+                {/* DYNAMIC RENDERING OF CAPABILITIES */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6"> 
-                    {[
-                        { title: "Premium Quality", desc: "Always delivering the best." },
-                        { title: "Fast Delivery", desc: "Quick and efficient service." },
-                        { title: "Customer Support", desc: "Always there for our clients." },
-                        { title: "Affordable Pricing", desc: "Growth shouldn't break the bank." },
-                    ].map((c) => (
-                        <div key={c.title} className="p-4 bg-white rounded-xl shadow-md flex items-start gap-3">
-                            <span className="text-2xl text-purple-600">{iconMap[c.title]}</span>
-                            <div>
-                                <p className="font-bold text-gray-800">{c.title}</p>
-                                <p className="text-sm text-gray-500 mt-1">{c.desc}</p>
+                    {capabilities.length > 0 ? (
+                        capabilities.map((c, i) => (
+                            <div key={i} className="p-4 bg-white rounded-xl shadow-md flex items-start gap-3">
+                                <span className="text-2xl text-purple-600">{c.icon || '🛠️'}</span>
+                                <div>
+                                    <p className="font-bold text-gray-800">{c.title}</p>
+                                    <p className="text-sm text-gray-500 mt-1">{c.desc}</p>
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        ))
+                    ) : (
+                        <p className="text-gray-500 italic">No capabilities defined yet.</p>
+                    )}
                 </div>
             </div>
         </section>
