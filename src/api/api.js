@@ -1,49 +1,11 @@
-
-// // export default API;
-// import axios from "axios";
-
-// const API = axios.create({
-//   baseURL: "http://localhost:5010/api",  // IMPORTANT FIX
-// });
-
-// // // const API = axios.create({
-// // //   baseURL: "https://leadgenerator-backend-production.up.railway.app/api",
-// // // });
-
-// // Attach token automatically
-// API.interceptors.request.use((config) => {
-//   const token = localStorage.getItem("token");
-//   if (token) {
-//     config.headers.Authorization = `Bearer ${token}`;
-//   }
-//   return config;
-// });
-
-// src/api/api.js
-// import axios from "axios";
-
-// const API = axios.create({
-//   baseURL: "http://localhost:5010/api",
-// });
-
-// // 🔐 Attach token to all requests
-// API.interceptors.request.use((config) => {
-//   const token = localStorage.getItem("token");
-//   if (token) config.headers.Authorization = `Bearer ${token}`;
-//   return config;
-// });
-
-// export default API;
-
-
-
 import axios from "axios";
 
 const API = axios.create({
-  // baseURL: "http://localhost:5010/api",\
-  baseURL: "https://leadgenerator-backend-production.up.railway.app/api",
+  baseURL: "http://localhost:5010/api",
+  timeout: 15000,
 });
 
+// ---------------- REQUEST ----------------
 API.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
@@ -53,6 +15,29 @@ API.interceptors.request.use(
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+// ---------------- RESPONSE ----------------
+API.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      const status = error.response.status;
+      const url = error.config?.url || "";
+
+      // 🔴 Logout ONLY when token is invalid (not during login or initial load)
+      if (
+        (status === 401 || status === 403) &&
+        !url.includes("/auth/login")
+      ) {
+        console.warn("Auth error → logging out");
+        localStorage.clear();
+        window.location.replace("/login");
+      }
+    }
+
+    return Promise.reject(error);
+  }
 );
 
 export default API;

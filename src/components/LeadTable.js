@@ -1,169 +1,227 @@
-import React, { useEffect, useState } from "react";
-import API from "../api/api";
-import LeadTable from "../components/LeadTable";
-import { useNavigate } from "react-router-dom";
+// src/components/LeadTable.jsx
 
-export default function AllLeadsPage() {
-  const [allLeads, setAllLeads] = useState([]);
-  const [filtered, setFiltered] = useState([]);
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
-  const [category, setCategory] = useState("");
-  const [score, setScore] = useState("");
-  const [date, setDate] = useState("");
-
-  const [loading, setLoading] = useState(false);
-
+/**
+ * LeadTable Component
+ * Renders a table of leads in a CRM style with pagination controls.
+ * @param {object[]} leads - Array of lead objects for the current page.
+ * @param {function} [onFollowUp] - Function to call for the "Follow-up" action.
+ * @param {number} totalItems - Total count of all leads (for calculating pages).
+ * @param {number} itemsPerPage - Number of items to show per page.
+ * @param {number} currentPage - The current page number (1-indexed).
+ * @param {function} onPageChange - Function to call when a page number is clicked.
+ */
+export default function LeadTable({ 
+  leads, 
+  onFollowUp, 
+  totalItems, 
+  itemsPerPage, 
+  currentPage, 
+  onPageChange 
+}) {
   const navigate = useNavigate();
-
-  /* ------------------------------------
-     LOAD ALL LEADS
-  ------------------------------------ */
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  async function loadData() {
-    setLoading(true);
-    try {
-      const res = await API.get("/leads");
-      setAllLeads(res.data);
-      setFiltered(res.data);
-    } catch (err) {
-      console.error("Error loading leads:", err);
-    } finally {
-      setLoading(false);
-    }
+  
+  // --- PAGINATION LOGIC ---
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const pageNumbers = [];
+  // Show 1, 2, ..., totalPages - 1, totalPages (or a limited set)
+  for (let i = 1; i <= totalPages; i++) {
+    pageNumbers.push(i);
   }
-
-  /* ------------------------------------
-     APPLY FILTERS
-  ------------------------------------ */
-  const applyFilters = () => {
-    let list = [...allLeads];
-
-    if (category.trim()) {
-      list = list.filter((l) =>
-        l.category?.toLowerCase().includes(category.toLowerCase())
-      );
+  
+  // Helper function to extract a cleaner location name (unchanged)
+  const getLocality = (address) => {
+    if (!address) return 'N/A';
+    const parts = address.split(',').map(p => p.trim()).filter(p => p.length > 3);
+    if (parts.length >= 2) {
+      return `${parts[1]}, ${parts[2] || parts[1]}`;
     }
-
-    if (score) {
-      list = list.filter((l) => (l.lead_score || 0) >= Number(score));
-    }
-
-    if (date) {
-      list = list.filter(
-        (l) => l.createdAt?.slice(0, 10) === date
-      );
-    }
-
-    setFiltered(list);
+    return parts[0]; 
   };
 
-  /* ------------------------------------
-     FOLLOW-UP ENTRY POINT (🔥 CORE LOGIC)
-  ------------------------------------ */
-  async function goToFollowUp(leadId) {
-    // ⚠️ DO NOT navigate here
-    // LeadTable already does optimistic UI
-    // We only mark backend state
+  // Helper to determine status color (unchanged)
+  const getStatusStyle = (status) => {
+    switch (status) {
+      case "INTERESTED": return 'bg-green-100 text-green-800';
+      case "CONTACTED": return 'bg-blue-100 text-blue-800';
+      case "PENDING": return 'bg-yellow-100 text-yellow-800';
+      case "LOST": return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+  
+  // Handle navigation to the View Lead Page
+  const handleViewLead = (leadId) => {
+    // If the View button is tapped, it reroutes here.
+    navigate(`/lead/${leadId}`);
+  };
 
-    await API.post(`/leads/${leadId}/whatsapp-log`);
-
-    // OPTIONAL: If you want auto-redirect uncomment below
-    // navigate("/followup");
+  if (!leads || leads.length === 0) {
+    return (
+      <div className="text-center py-10 text-gray-500 border-2 border-dashed border-gray-300 rounded-xl bg-white">
+        <p className="font-semibold">No leads to display.</p>
+        <p className="text-sm mt-1">Check your filters or scrape new data.</p>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-[#F9FBF9]">
-
-      {/* TOP BAR */}
-      <nav
-        className="px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-md"
-        style={{ backgroundColor: "#1ABC9C" }}
-      >
-        <h1 className="text-2xl font-bold text-white">All Leads</h1>
-
-        <div className="flex gap-3">
-          <button
-            onClick={() => navigate("/")}
-            className="bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg"
-          >
-            ← Back
-          </button>
-
-          <button
-            onClick={loadData}
-            className="bg-white text-[#1ABC9C] px-3 py-2 rounded-lg font-semibold"
-          >
-            {loading ? "Refreshing..." : "Refresh"}
-          </button>
-
-          <button
-            onClick={() => navigate("/followup")}
-            className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-indigo-700"
-          >
-            Follow-up Dashboard →
-          </button>
-        </div>
-      </nav>
-
-      {/* PAGE BODY */}
-      <div className="p-6 sm:p-8">
-
-        {/* FILTERS */}
-        <div className="bg-white p-6 rounded-xl shadow-md mb-8">
-          <h2 className="text-lg font-semibold mb-4 text-gray-700">
-            Filters
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <input
-              placeholder="Category (e.g. Tuition)"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="border border-gray-300 rounded-lg px-4 py-2"
-            />
-
-            <select
-              value={score}
-              onChange={(e) => setScore(e.target.value)}
-              className="border border-gray-300 rounded-lg px-4 py-2"
-            >
-              <option value="">Score: Any</option>
-              <option value="80">80+</option>
-              <option value="60">60+</option>
-              <option value="40">40+</option>
-            </select>
-
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="border border-gray-300 rounded-lg px-4 py-2"
-            />
-          </div>
-
-          <button
-            onClick={applyFilters}
-            className="mt-4 px-6 py-2 bg-[#1ABC9C] text-white rounded-lg font-semibold hover:bg-teal-700"
-          >
-            Apply Filters
-          </button>
-        </div>
-
-        {/* LEAD TABLE */}
-        {loading ? (
-          <div className="p-10 text-center text-gray-600">
-            Loading leads...
-          </div>
-        ) : (
-          <LeadTable
-            leads={filtered}
-            onFollowUp={goToFollowUp}
-          />
-        )}
+    <div className="rounded-xl shadow-lg border border-gray-200">
+      <div className="overflow-x-auto">
+        {/* Table Content (same as before) */}
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lead Name</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category / Location</th>
+              <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Score</th>
+              <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Website</th>
+              <th className="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">WhatsApp</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pipeline Status</th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {leads.map((lead) => (
+              <tr key={lead._id} className="hover:bg-gray-50">
+                
+                {/* Lead Name */}
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                  {lead.name || 'N/A'}
+                </td>
+                
+                {/* Category / Location */}
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                  <div className="font-medium">{lead.category || 'N/A'}</div>
+                  <div className="text-xs text-gray-500">{getLocality(lead.address)}</div>
+                </td>
+                
+                {/* Score */}
+                <td className="px-3 py-4 whitespace-nowrap text-center text-sm font-bold text-teal-600">
+                  {lead.lead_score || 0}
+                </td>
+                
+                {/* Website Exists */}
+                <td className="px-3 py-4 whitespace-nowrap text-center">
+                  <span role="img" aria-label="website-status">
+                    {lead.hasWebsite ? '🌐 Yes' : '❌ No'}
+                  </span>
+                </td>
+                
+                {/* WhatsApp Available */}
+                <td className="px-3 py-4 whitespace-nowrap text-center">
+                  <span role="img" aria-label="whatsapp-status">
+                    {lead.whatsapp ? '✅ Yes' : '⛔ No'}
+                  </span>
+                </td>
+                
+                {/* Pipeline Status */}
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span 
+                    className={`px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusStyle(lead.followup?.status)}`}
+                  >
+                    {lead.followup?.status || 'New Lead'}
+                  </span>
+                </td>
+                
+                {/* Actions (CRM Style) */}
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  
+                  {onFollowUp && (
+                    <button
+                      onClick={() => onFollowUp(lead._id)}
+                      className="text-indigo-600 hover:text-indigo-900 font-semibold mr-3 transition"
+                    >
+                      Follow-up
+                    </button>
+                  )}
+                  
+                  {/* Mandatory View Button */}
+                  <button
+                    onClick={() => handleViewLead(lead._id)}
+                    className="bg-[#1ABC9C] text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-teal-700 transition"
+                  >
+                    View
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
+
+      {/* --- PAGINATION CONTROLS --- */}
+      {totalPages > 1 && (
+        <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+          <div className="flex-1 flex justify-between sm:hidden">
+            <button
+              onClick={() => onPageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => onPageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            >
+              Next
+            </button>
+          </div>
+
+          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-gray-700">
+                Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-medium">{Math.min(currentPage * itemsPerPage, totalItems)}</span> of{' '}
+                <span className="font-medium">{totalItems}</span> results
+              </p>
+            </div>
+            <div>
+              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                <button
+                  onClick={() => onPageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  <span className="sr-only">Previous</span>
+                  {/* Heroicon: chevron-left */}
+                  <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" /></svg>
+                </button>
+                
+                {/* Page Number Buttons */}
+                {pageNumbers.map(number => (
+                  <button
+                    key={number}
+                    onClick={() => onPageChange(number)}
+                    aria-current={number === currentPage ? 'page' : undefined}
+                    className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                      number === currentPage
+                        ? 'z-10 bg-[#1ABC9C] border-[#1ABC9C] text-white'
+                        : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                    }`}
+                  >
+                    {number}
+                  </button>
+                ))}
+
+                <button
+                  onClick={() => onPageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  <span className="sr-only">Next</span>
+                  {/* Heroicon: chevron-right */}
+                  <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
+                </button>
+              </nav>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* --- END PAGINATION CONTROLS --- */}
     </div>
   );
 }

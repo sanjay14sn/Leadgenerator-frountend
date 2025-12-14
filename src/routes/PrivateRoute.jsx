@@ -1,42 +1,25 @@
-// src/routes/PrivateRoute.jsx
 import { Navigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import API from "../api/api";
+import { isTokenValid } from "../utils/auth";
 
-export default function PrivateRoute({ children }) {
-  const [auth, setAuth] = useState(null);
+export default function PrivateRoute({ children, roles = [] }) {
+  const token = localStorage.getItem("token");
+  const role = (localStorage.getItem("role") || "").toUpperCase();
 
-  useEffect(() => {
-    verify();
-  }, []);
-
-  async function verify() {
-    const token = localStorage.getItem("token");
-    if (!token) return setAuth(false);
-
-    try {
-      try {
-        const res = await API.get("/auth/me");
-        if (res.status === 200) setAuth(true);
-        else throw new Error("Invalid token");
-      } catch (err) {
-        console.error("Auth check failed", err);
-        localStorage.removeItem("token");
-        setAuth(false);
-      }
-    } catch (err) {
-      localStorage.removeItem("token");
-      setAuth(false);
-    }
+  if (!token) {
+    return <Navigate to="/login" replace />;
   }
 
-  if (auth === null) {
-    return (
-      <div className="w-full h-screen flex items-center justify-center text-xl">
-        Checking Authentication...
-      </div>
-    );
+  if (!isTokenValid(token)) {
+    localStorage.clear();
+    return <Navigate to="/login" replace />;
   }
 
-  return auth ? children : <Navigate to="/login" replace />;
+  if (
+    roles.length &&
+    !roles.map(r => r.toUpperCase()).includes(role)
+  ) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
 }

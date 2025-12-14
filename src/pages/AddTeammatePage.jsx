@@ -1,4 +1,7 @@
+// src/pages/AddTeammatePage.jsx
+
 import React, { useState } from "react";
+// Assuming you have API and useNavigate correctly imported
 import API from "../api/api";
 import { useNavigate } from "react-router-dom";
 
@@ -23,7 +26,7 @@ export default function AddTeammatePage() {
     instructions: "",
   });
   const [loading, setLoading] = useState(false);
-  const [creds, setCreds] = useState(null);
+  const [creds, setCreds] = useState(null); 
 
   function update(e) {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -32,9 +35,21 @@ export default function AddTeammatePage() {
   async function submit(e) {
     e.preventDefault();
     setLoading(true);
+    setCreds(null); 
     try {
       const res = await API.post("/teammates", form);
-      setCreds(res.data.login_credentials);
+      
+      setCreds(res.data.login_credentials); 
+
+      setForm({
+        name: "",
+        email: "",
+        phone: "",
+        role: "AGENT",
+        monthly_target: "",
+        instructions: "",
+      });
+
     } catch (error) {
       console.error("Teammate creation failed:", error);
       alert("Failed to create teammate. Check console for details.");
@@ -43,8 +58,8 @@ export default function AddTeammatePage() {
     }
   }
 
-  // Component for themed Input Group
-  const InputGroup = ({ icon: Icon, name, placeholder, value, onChange, type = "text", inputMode = "text", required = false }) => (
+  // 🔥 FIX: Define InputGroup here to access 'form' and 'update' directly
+  const InputGroup = ({ icon: Icon, name, placeholder, type = "text", inputMode = "text", required = false }) => (
     <div className="relative">
       <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
         <Icon className="w-5 h-5" />
@@ -53,14 +68,18 @@ export default function AddTeammatePage() {
         type={type}
         name={name}
         placeholder={placeholder}
-        value={value}
-        onChange={onChange}
-        inputMode={inputMode} // ADDED for better mobile keyboard UX
+        // Access form state directly via name:
+        value={form[name] || ''} 
+        // Use the update handler directly:
+        onChange={update} 
+        inputMode={inputMode} 
         className="block w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-[#1ABC9C] focus:border-[#1ABC9C] transition duration-150"
         required={required}
       />
     </div>
   );
+  // End of InputGroup definition
+
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
@@ -77,7 +96,6 @@ export default function AddTeammatePage() {
                 New Teammate Registration
               </h1>
             </div>
-            {/* NAVIGATION UPDATE: Back to /followups */}
             <button
               onClick={() => navigate("/followups")}
               className="px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition text-sm font-medium hidden md:block"
@@ -100,7 +118,6 @@ export default function AddTeammatePage() {
             </h3>
             <p className="text-gray-600 mb-4">
               Use this form to securely create a new account for your sales agents or managers.
-              Ensure all required fields are accurately filled.
             </p>
             <ul className="space-y-3 text-sm text-gray-700">
                 <li className="flex items-center">
@@ -117,11 +134,9 @@ export default function AddTeammatePage() {
                 </li>
             </ul>
 
-            {/* --- NEW: QR Code & App CTA Section --- */}
+            {/* QR Code & App CTA Section */}
             <div className="mt-8 pt-6 border-t border-gray-200 text-center">
                 <h4 className="font-bold text-gray-800 mb-3">Access Team Hub On The Go</h4>
-                
-                {/* QR Code Placeholder with image URL */}
                 <div className="w-32 h-32 mx-auto border-4 border-white shadow-lg overflow-hidden flex items-center justify-center mb-4">
                     <img 
                         src="https://qrexplore.com/icon/apple-icon.png" 
@@ -129,10 +144,6 @@ export default function AddTeammatePage() {
                         className="w-full h-full object-cover" 
                     />
                 </div>
-
-                <p className="text-sm text-gray-600 mb-4">Scan the code or download the mobile app from:</p>
-                
-                {/* Store Badges (Updated to use the provided img tags) */}
                 <div className="mt-4 flex justify-center gap-4">
                     <img
                         src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"
@@ -146,7 +157,6 @@ export default function AddTeammatePage() {
                     />
                 </div>
             </div>
-            {/* --- END QR/App CTA --- */}
           </div>
 
 
@@ -167,8 +177,6 @@ export default function AddTeammatePage() {
                         icon={UserIcon}
                         name="name"
                         placeholder="Full Name (Required)"
-                        value={form.name}
-                        onChange={update}
                         required
                         inputMode="text"
                       />
@@ -177,8 +185,6 @@ export default function AddTeammatePage() {
                           icon={MailIcon}
                           name="email"
                           placeholder="Professional Email (Required)"
-                          value={form.email}
-                          onChange={update}
                           type="email"
                           required
                           inputMode="email"
@@ -187,10 +193,8 @@ export default function AddTeammatePage() {
                           icon={PhoneIcon}
                           name="phone"
                           placeholder="Phone Number"
-                          value={form.phone}
-                          onChange={update}
                           type="tel"
-                          inputMode="tel" // FIX: inputMode="tel" ensures the numeric keypad shows and stays open
+                          inputMode="tel" 
                         />
                       </div>
                     </div>
@@ -200,7 +204,7 @@ export default function AddTeammatePage() {
                 <fieldset className="border p-4 rounded-lg">
                     <legend className="px-2 text-md font-semibold text-gray-700">Role & Performance</legend>
                     <div className="space-y-4 pt-2">
-                        {/* Role Select */}
+                        {/* Role Select - This must use the update function directly */}
                         <div className="relative">
                             <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
                               <BriefcaseIcon className="w-5 h-5" />
@@ -220,16 +224,14 @@ export default function AddTeammatePage() {
                           icon={TargetIcon}
                           name="monthly_target"
                           placeholder="Monthly Revenue Target (e.g., 50000)"
-                          value={form.monthly_target}
-                          onChange={update}
                           type="number" 
-                          inputMode="numeric" // FIX: inputMode="numeric" also helps stabilize numeric input on mobile
+                          inputMode="numeric" 
                         />
                     </div>
                 </fieldset>
 
 
-                {/* SECTION: INSTRUCTIONS */}
+                {/* SECTION: INSTRUCTIONS (The working native field) */}
                 <fieldset className="border p-4 rounded-lg">
                     <legend className="px-2 text-md font-semibold text-gray-700">Team Instructions / Notes</legend>
                     <div className="space-y-4 pt-2 relative">
@@ -239,10 +241,9 @@ export default function AddTeammatePage() {
                         <textarea
                           name="instructions"
                           placeholder="Onboarding notes, specific region, or critical info."
-                          value={form.instructions}
-                          onChange={update}
+                          value={form.instructions} // Correctly bound to state
+                          onChange={update}         // Correctly using update function
                           rows="4"
-                          // Padding adjusted to avoid icon overlap (pl-10, pt-3)
                           className="block w-full pl-10 pr-4 pt-3 pb-3 border border-gray-300 rounded-lg shadow-sm focus:ring-[#1ABC9C] focus:border-[#1ABC9C] transition duration-150 resize-y"
                         />
                     </div>
@@ -265,7 +266,7 @@ export default function AddTeammatePage() {
                 </button>
               </form>
             ) : (
-              // --- SUCCESS STATE (MNC Style) ---
+              // --- SUCCESS STATE ---
               <div className="p-8 border-4 border-green-200 bg-green-50 rounded-xl shadow-inner text-center">
                 <CheckCircleIcon className="w-16 h-16 text-green-600 mx-auto mb-4" />
                 <h3 className="text-3xl font-extrabold text-green-800 mb-4">

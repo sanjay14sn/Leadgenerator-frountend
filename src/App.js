@@ -1,34 +1,25 @@
- // src/App.js
-import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-/* -------------------- PAGES -------------------- */
 import LoginPage from "./pages/LoginPage";
 import Home from "./pages/Home";
 import AllLeadsPage from "./pages/AllLeadsPage";
 import FollowUpPage from "./pages/FollowUpPage";
 import ViewLeadPage from "./pages/ViewLeadPage";
-
-/* TEAM MANAGEMENT */
 import TeammatesPage from "./pages/TeammatesPage";
 import AddTeammatePage from "./pages/AddTeammatePage";
-
-/* EXTRA MODULES */
 import InstaLeads from "./pages/InstaLeads";
 import CloudflareManager from "./pages/CloudflareManager";
 
-/* ROUTE GUARD */
 import PrivateRoute from "./routes/PrivateRoute";
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-
-        {/* ---------------- PUBLIC ---------------- */}
+        {/* PUBLIC */}
         <Route path="/login" element={<LoginPage />} />
 
-        {/* ---------------- DASHBOARD ---------------- */}
+        {/* PROTECTED */}
         <Route
           path="/"
           element={
@@ -38,7 +29,6 @@ export default function App() {
           }
         />
 
-        {/* ---------------- LEADS ---------------- */}
         <Route
           path="/all-leads"
           element={
@@ -66,10 +56,6 @@ export default function App() {
           }
         />
 
-        <Route path="/followup/:id" element={<PrivateRoute><FollowUpPage /></PrivateRoute>} />
-
-
-        {/* ---------------- INSTAGRAM ---------------- */}
         <Route
           path="/instaleads"
           element={
@@ -79,17 +65,15 @@ export default function App() {
           }
         />
 
-        {/* ---------------- CLOUDFLARE ---------------- */}
         <Route
           path="/cloudflare"
           element={
-            <PrivateRoute>
+            <PrivateRoute roles={["SUPER_ADMIN"]}>
               <CloudflareManager />
             </PrivateRoute>
           }
         />
 
-        {/* ---------------- TEAM MANAGEMENT ---------------- */}
         <Route
           path="/admin/teammates"
           element={
@@ -108,16 +92,8 @@ export default function App() {
           }
         />
 
-        {/* ---------------- FALLBACK ---------------- */}
-        <Route
-          path="*"
-          element={
-            <div className="min-h-screen flex items-center justify-center text-2xl font-bold">
-              404 – Page Not Found
-            </div>
-          }
-        />
-
+        {/* FALLBACK */}
+        <Route path="*" element={<div>404 – Page Not Found</div>} />
       </Routes>
     </BrowserRouter>
   );
