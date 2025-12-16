@@ -9,6 +9,8 @@ import TeammatesPage from "./pages/TeammatesPage";
 import AddTeammatePage from "./pages/AddTeammatePage";
 import InstaLeads from "./pages/InstaLeads";
 import CloudflareManager from "./pages/CloudflareManager";
+import ChooseTemplatePage from "./pages/ChooseTemplatePage";
+
 
 import PrivateRoute from "./routes/PrivateRoute";
 
@@ -39,7 +41,16 @@ export default function App() {
         />
 
         <Route
-          path="/lead/:id"
+          path="/leads/:id/templates"
+          element={
+            <PrivateRoute>
+              <ChooseTemplatePage />
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/leads/:id/edit"
           element={
             <PrivateRoute>
               <ViewLeadPage />

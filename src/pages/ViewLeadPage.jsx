@@ -1,8 +1,16 @@
-// src/pages/ViewLeadPage.jsx
-import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import {
+  useParams,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
+
+
 import API from "../api/api";
-import { getTemplateByCategory } from "./templates/templateRegistry";
+import {
+  getTemplateByKey,
+  getTemplateByCategory,
+} from "./templates/templateRegistry";
 
 // --- TEMPLATES FOR WHATSAPP MODAL ---
 const WHATSAPP_TEMPLATES = [
@@ -165,6 +173,9 @@ const WhatsAppChatModal = ({ lead, isLoading, onSend, onClose }) => {
 
 // --- MAIN ViewLeadPage COMPONENT ---
 function ViewLeadPage() {
+  const [searchParams] = useSearchParams();
+  const selectedTemplate = searchParams.get("template");
+
   const { id } = useParams();
   const navigate = useNavigate();
   const [lead, setLead] = useState(null);
@@ -280,7 +291,8 @@ function ViewLeadPage() {
       await API.patch(`/leads/${id}`, lead);
 
       // 2️⃣ Publish website (THIS already handles deploy + logging)
-      const res = await API.patch(`/leads/${id}/publish`);
+      // FIX THIS LINE
+      const res = await API.patch(`/deploy/${id}/publish`);
 
       if (res?.data?.web_url) {
         setLead((prev) => ({
@@ -290,7 +302,7 @@ function ViewLeadPage() {
       }
 
       // 3️⃣ Go to follow-up
-      navigate(`/followup/${id}`);
+      //  navigate(`/followup/${id}`);
     } catch (err) {
       console.error(err);
       alert("Publishing failed");
@@ -435,7 +447,10 @@ function ViewLeadPage() {
           }`}
         >
           {(() => {
-            const Template = getTemplateByCategory(lead.category);
+            const Template = selectedTemplate
+              ? getTemplateByKey(selectedTemplate) // ✅ user choice FIRST
+              : getTemplateByCategory(lead.category); // ✅ fallback only
+
             return <Template lead={lead} />;
           })()}
         </div>
