@@ -1,65 +1,34 @@
-// src/pages/AllLeadsPage.jsx
-
 import React, { useEffect, useState, useMemo } from "react";
 import API from "../api/api";
 import LeadTable from "../components/LeadTable";
-import { useNavigate } from "react-router-dom";
+import AppLayout from "../layouts/AppLayout";
+import { 
+  Search, Filter, RotateCcw, LayoutGrid, CalendarDays, ArrowRight, Download
+} from "lucide-react";
 
 export default function AllLeadsPage() {
   const [allLeads, setAllLeads] = useState([]);
-  const [filtered, setFiltered] = useState([]); 
-  
-  // --- BASIC FILTERS ---
-  const [category, setCategory] = useState("");
-  const [score, setScore] = useState("");
-  const [date, setDate] = useState("");
-
-  // --- ADVANCED FILTERS (NEW) ---
-  const [hasWebsiteFilter, setHasWebsiteFilter] = useState("all"); 
-  const [whatsappFilter, setWhatsappFilter] = useState("all"); 
-  const [statusFilter, setStatusFilter] = useState(""); 
-
   const [loading, setLoading] = useState(false);
-  
-  // --- PAGINATION STATE ---
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10; 
-  
-  const navigate = useNavigate();
+  const itemsPerPage = 10;
 
-  // Helper to reset all filter states
-  const resetFilters = () => {
-    setCategory("");
-    setScore("");
-    setDate("");
-    setHasWebsiteFilter("all");
-    setWhatsappFilter("all");
-    setStatusFilter("");
-    // Trigger filter application to update the table immediately
-    // Note: We call applyFilters in useEffect after state update is guaranteed
-  };
-  
-  /* ------------------------------------
-     LOAD ALL LEADS
-  ------------------------------------ */
+  const [filters, setFilters] = useState({
+    search: "",
+    startDate: "",
+    endDate: "",
+    hasWebsite: "all",
+    status: "",
+  });
+
   useEffect(() => {
     loadData();
   }, []);
-
-  // Use a second useEffect to apply filters when filter states are reset
-  useEffect(() => {
-      // This is primarily for when the 'Clear Filters' button is pressed
-      applyFilters(); 
-  }, [category, score, date, hasWebsiteFilter, whatsappFilter, statusFilter, allLeads]);
-
 
   async function loadData() {
     setLoading(true);
     try {
       const res = await API.get("/leads");
-      setAllLeads(res.data);
-      setFiltered(res.data); // Initial filtering is everything
-      setCurrentPage(1);
+      setAllLeads(res.data || []);
     } catch (err) {
       console.error("Error loading leads:", err);
     } finally {
@@ -67,246 +36,164 @@ export default function AllLeadsPage() {
     }
   }
 
-  /* ------------------------------------
-     APPLY FILTERS (UPDATED LOGIC)
-  ------------------------------------ */
-  const applyFilters = (manualRun = false) => {
-    let list = [...allLeads]; 
-
-    // 1. Basic Filters
-    if (category.trim()) {
-      list = list.filter((l) =>
-        l.category?.toLowerCase().includes(category.toLowerCase())
-      );
-    }
-
-    if (score) {
-      list = list.filter((l) => (l.lead_score || 0) >= Number(score));
-    }
-
-    if (date) {
-      list = list.filter(
-        (l) => l.createdAt?.slice(0, 10) === date
-      );
-    }
-
-    // 2. Advanced Filters (Website)
-    if (hasWebsiteFilter !== "all") {
-        const required = hasWebsiteFilter === "yes";
-        list = list.filter(l => !!l.hasWebsite === required);
-    }
-
-    // 3. Advanced Filters (WhatsApp)
-    if (whatsappFilter !== "all") {
-        const required = whatsappFilter === "yes";
-        list = list.filter(l => !!l.whatsapp === required);
-    }
-
-    // 4. Advanced Filters (Pipeline Status)
-    if (statusFilter) {
-        list = list.filter(l => (l.followup?.status || 'New Lead') === statusFilter);
-    }
-
-    setFiltered(list); 
-    setCurrentPage(1); 
+  const setQuickDate = (daysAgoStart, daysAgoEnd = 0) => {
+    const start = new Date();
+    start.setDate(start.getDate() - daysAgoStart);
+    const end = new Date();
+    end.setDate(end.getDate() - daysAgoEnd);
+    
+    setFilters(prev => ({ 
+      ...prev, 
+      startDate: start.toISOString().split('T')[0], 
+      endDate: end.toISOString().split('T')[0] 
+    }));
+    setCurrentPage(1);
   };
-  
-  // Handle filter changes instantly without an "Apply" button, for better UX
-  const handleFilterChange = (setter) => (e) => {
-      setter(e.target.value);
-      // Filters are applied by the useEffect that watches all filter states
-  }
 
+  const filteredLeads = useMemo(() => {
+    return allLeads.filter((lead) => {
+      if (filters.search) {
+        const term = filters.search.toLowerCase();
+        const matches = [lead.name, lead.category, lead.email].some(val => val?.toLowerCase().includes(term));
+        if (!matches) return false;
+      }
 
-  /* ------------------------------------
-     PAGINATION SLICING
-  ------------------------------------ */
+      if (filters.hasWebsite !== "all") {
+        const hasUrl = !!lead.hasWebsite;
+        if ((filters.hasWebsite === "yes" && !hasUrl) || (filters.hasWebsite === "no" && hasUrl)) return false;
+      }
+
+      const leadDate = lead.createdAt?.slice(0, 10);
+      if (filters.startDate && filters.endDate) {
+        if (leadDate < filters.startDate || leadDate > filters.endDate) return false;
+      }
+
+      if (filters.status && (lead.followup?.status || "New Lead") !== filters.status) return false;
+
+      return true;
+    });
+  }, [allLeads, filters]);
+
   const currentLeads = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return filtered.slice(startIndex, endIndex);
-  }, [filtered, currentPage, itemsPerPage]);
-
-  /* ------------------------------------
-     FOLLOW-UP ENTRY POINT
-  ------------------------------------ */
-  async function goToFollowUp(leadId) {
-    try {
-      await API.post(`/leads/${leadId}/whatsapp-log`);
-      // Optional: if you update the lead status on the backend, call loadData() here.
-    } catch (error) {
-      console.error("Failed to log follow-up:", error);
-      alert("Failed to log follow-up. Check API.");
-    }
-  }
-
-  // Function passed to LeadTable to handle page changes
-  const handlePageChange = (pageNumber) => {
-    setCurrentPage(pageNumber);
-  };
-
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredLeads.slice(start, start + itemsPerPage);
+  }, [filteredLeads, currentPage]);
 
   return (
-    <div className="min-h-screen bg-[#F9FBF9]">
-
-      {/* TOP BAR (Unchanged) */}
-      <nav
-        className="px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-md"
-        style={{ backgroundColor: "#1ABC9C" }}
-      >
-        <h1 className="text-2xl font-bold text-white">All Leads</h1>
-
-        <div className="flex gap-3">
-          <button
-            onClick={() => navigate("/")}
-            className="bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg"
-          >
-            ← Back
-          </button>
-
-          <button
-            onClick={loadData}
-            className="bg-white text-[#1ABC9C] px-3 py-2 rounded-lg font-semibold"
-          >
-            {loading ? "Refreshing..." : "Refresh"}
-          </button>
-
-          <button
-            onClick={() => navigate("/followup")}
-            className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-indigo-700"
-          >
-            Follow-up Dashboard →
-          </button>
-        </div>
-      </nav>
-
-      {/* PAGE BODY */}
-      <div className="p-6 sm:p-8">
-
-        {/* FILTERS (User-Friendly Design) */}
-        <div className="bg-white p-6 rounded-xl shadow-md mb-8">
-          <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center justify-between">
-            Search & Filter Leads
-            <button
-                onClick={resetFilters}
-                className="text-sm text-red-500 hover:text-red-700 font-medium"
-            >
-                Clear Filters
+    <AppLayout>
+      <div className="max-w-[1600px] mx-auto p-4 md:p-6 space-y-4 bg-gray-50/30 min-h-screen">
+        
+        {/* COMPACT HEADER */}
+        <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Leads Database</h1>
+            <p className="text-sm text-gray-500 font-medium">
+              <span className="text-blue-600">{filteredLeads.length}</span> total leads matches
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button className="p-2.5 text-gray-500 bg-gray-50 rounded-xl hover:bg-blue-50 hover:text-blue-600 transition-colors">
+              <Download size={20} />
             </button>
-          </h2>
+            <button 
+              onClick={() => setFilters({ search: "", startDate: "", endDate: "", hasWebsite: "all", status: "" })}
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all"
+            >
+              <RotateCcw size={16} /> Reset
+            </button>
+          </div>
+        </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-              
-            {/* 1. Category Search (Input) */}
-            <div className="lg:col-span-2">
-                <label className="block text-xs font-medium text-gray-500 mb-1">Search Keyword/Category</label>
-                <input
-                    placeholder="e.g., Watch repair, Tuition"
-                    value={category}
-                    onChange={handleFilterChange(setCategory)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-[#1ABC9C] focus:ring-[#1ABC9C]"
-                />
-            </div>
+        {/* SEARCH & FILTER BAR */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+          <div className="md:col-span-5 relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              value={filters.search}
+              onChange={(e) => { setFilters({...filters, search: e.target.value}); setCurrentPage(1); }}
+              placeholder="Search leads..."
+              className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all shadow-sm"
+            />
+          </div>
 
-            {/* 2. Score Filter (Select) */}
-            <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Min. Score</label>
-                <select
-                    value={score}
-                    onChange={handleFilterChange(setScore)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-[#1ABC9C] focus:ring-[#1ABC9C]"
-                >
-                    <option value="">Any</option>
-                    <option value="80">80+</option>
-                    <option value="60">60+</option>
-                    <option value="40">40+</option>
-                </select>
-            </div>
+          <div className="md:col-span-4 bg-white p-1 rounded-xl border border-gray-200 flex shadow-sm">
+            {['all', 'yes', 'no'].map((opt) => (
+              <button
+                key={opt}
+                onClick={() => { setFilters({...filters, hasWebsite: opt}); setCurrentPage(1); }}
+                className={`flex-1 py-2 text-xs font-bold uppercase rounded-lg transition-all ${
+                  filters.hasWebsite === opt ? "bg-blue-600 text-white shadow-sm" : "text-gray-400 hover:bg-gray-50"
+                }`}
+              >
+                {opt === 'all' ? 'All Leads' : opt === 'yes' ? 'With Web' : 'No Web'}
+              </button>
+            ))}
+          </div>
 
-            {/* 3. Date Filter (Input) */}
-            <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Date Created</label>
-                <input
-                    type="date"
-                    value={date}
-                    onChange={handleFilterChange(setDate)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-[#1ABC9C] focus:ring-[#1ABC9C]"
-                />
-            </div>
-            
-            {/* 4. Status Filter (Select) */}
-            <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Pipeline Status</label>
-                <select
-                    value={statusFilter}
-                    onChange={handleFilterChange(setStatusFilter)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-[#1ABC9C] focus:ring-[#1ABC9C]"
-                >
-                    <option value="">All Statuses</option>
-                    <option value="New Lead">New Lead</option>
-                    <option value="PENDING">Pending</option>
-                    <option value="CONTACTED">Contacted</option>
-                    <option value="INTERESTED">Interested</option>
-                    <option value="LOST">Lost</option>
-                </select>
-            </div>
+          <div className="md:col-span-3">
+            <select
+              value={filters.status}
+              onChange={(e) => { setFilters({...filters, status: e.target.value}); setCurrentPage(1); }}
+              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 shadow-sm font-medium text-gray-700 appearance-none"
+            >
+              <option value="">All Pipeline Status</option>
+              <option value="New Lead">🆕 New Lead</option>
+              <option value="PENDING">⏳ Pending</option>
+              <option value="CONTACTED">📞 Contacted</option>
+            </select>
+          </div>
+        </div>
 
-            {/* 5. Website Filter (Select) */}
-            <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Has Website?</label>
-                <select
-                    value={hasWebsiteFilter}
-                    onChange={handleFilterChange(setHasWebsiteFilter)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-[#1ABC9C] focus:ring-[#1ABC9C]"
-                >
-                    <option value="all">All</option>
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
-                </select>
-            </div>
-
-            {/* 6. WhatsApp Filter (Select) */}
-            <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Has WhatsApp?</label>
-                <select
-                    value={whatsappFilter}
-                    onChange={handleFilterChange(setWhatsappFilter)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:border-[#1ABC9C] focus:ring-[#1ABC9C]"
-                >
-                    <option value="all">All</option>
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
-                </select>
-            </div>
-            
+        {/* COMPACT DATE RANGE BAR */}
+        <div className="flex flex-wrap items-center gap-4 bg-white p-3 px-5 rounded-2xl border border-gray-200 shadow-sm">
+          <div className="flex items-center gap-2 text-gray-500 font-bold text-xs uppercase tracking-wider border-r pr-4">
+            <CalendarDays size={16} className="text-blue-500" />
+            Quick Filter
           </div>
           
-          {/* Removed the separate Apply button since filters are now applied automatically via useEffect */}
-          {/* <button onClick={applyFilters} ...> Apply Filters </button> */}
-
-        </div>
-        {/*  */}
-
-
-        {/* LEAD TABLE */}
-        {loading ? (
-          <div className="p-10 text-center text-gray-600">
-            Loading leads...
+          <div className="flex gap-1">
+            <button onClick={() => setQuickDate(0)} className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${filters.startDate === new Date().toISOString().split('T')[0] ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:bg-gray-50'}`}>Today</button>
+            <button onClick={() => setQuickDate(1, 1)} className="px-4 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-50 rounded-lg">Yesterday</button>
+            <button onClick={() => setQuickDate(7)} className="px-4 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-50 rounded-lg">Last 7 Days</button>
           </div>
-        ) : (
-          <LeadTable
-            // Pass the sliced data for the current page
-            leads={currentLeads} 
-            onFollowUp={goToFollowUp}
-            
-            // Pass Pagination props
-            totalItems={filtered.length} // The total number of filtered leads
-            itemsPerPage={itemsPerPage}
-            currentPage={currentPage}
-            onPageChange={handlePageChange}
-          />
-        )}
+
+          <div className="flex items-center gap-2 ml-auto">
+            <input 
+              type="date" 
+              value={filters.startDate}
+              onChange={(e) => { setFilters({...filters, startDate: e.target.value}); setCurrentPage(1); }}
+              className="bg-gray-50 border-none rounded-lg px-3 py-1 text-xs font-semibold text-gray-600 focus:ring-1 focus:ring-blue-500"
+            />
+            <ArrowRight size={14} className="text-gray-300" />
+            <input 
+              type="date" 
+              value={filters.endDate}
+              onChange={(e) => { setFilters({...filters, endDate: e.target.value}); setCurrentPage(1); }}
+              className="bg-gray-50 border-none rounded-lg px-3 py-1 text-xs font-semibold text-gray-600 focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        {/* TABLE SECTION */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          {loading ? (
+            <div className="py-20 flex flex-col items-center justify-center">
+              <div className="w-10 h-10 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mb-4" />
+              <p className="text-gray-400 text-sm font-medium">Fetching leads...</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto min-h-[400px]">
+              <LeadTable
+                leads={currentLeads}
+                totalItems={filteredLeads.length}
+                itemsPerPage={itemsPerPage}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }

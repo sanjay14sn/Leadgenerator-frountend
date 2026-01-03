@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import LoginPage from "./pages/LoginPage";
 import Home from "./pages/Home";
@@ -10,20 +10,22 @@ import AddTeammatePage from "./pages/AddTeammatePage";
 import InstaLeads from "./pages/InstaLeads";
 import CloudflareManager from "./pages/CloudflareManager";
 import ChooseTemplatePage from "./pages/ChooseTemplatePage";
-
-
+import AIPoster from "./pages/AIPoster";
+import IQSyncLanding from "./pages/website";
 import PrivateRoute from "./routes/PrivateRoute";
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* PUBLIC */}
+
+        {/* 🌍 PUBLIC ROUTES */}
+        <Route path="/" element={<IQSyncLanding />} />
         <Route path="/login" element={<LoginPage />} />
 
-        {/* PROTECTED */}
+        {/* 🔒 PROTECTED ROUTES */}
         <Route
-          path="/"
+          path="/home"
           element={
             <PrivateRoute>
               <Home />
@@ -103,8 +105,18 @@ export default function App() {
           }
         />
 
-        {/* FALLBACK */}
-        <Route path="*" element={<div>404 – Page Not Found</div>} />
+        <Route
+          path="/aiposter"
+          element={
+            <PrivateRoute>
+              <AIPoster />
+            </PrivateRoute>
+          }
+        />
+
+        {/* 🌍 FALLBACK → redirect unknown routes to website */}
+        <Route path="*" element={<Navigate to="/" />} />
+
       </Routes>
     </BrowserRouter>
   );

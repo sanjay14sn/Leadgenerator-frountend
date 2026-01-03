@@ -15,21 +15,55 @@ import {
 // --- TEMPLATES FOR WHATSAPP MODAL ---
 const WHATSAPP_TEMPLATES = [
   {
-    title: "Standard Intro",
-    message:
-      "Hi {name}, I noticed your business {category} and wanted to share how we can significantly boost your online presence. Click here to view your personalized site: {web_url}",
+    title: "Preschool Demo Website",
+    message: `Mam/Sir,
+
+I built a beautiful demo website for your preschool 👶🎓
+
+🌐 Demo Link:
+{web_url}
+
+Today, most parents search on Google before calling a school.
+This website helps you get more enquiries and build strong trust.
+
+If you like this demo, I can complete the full website within 1 day.
+
+Reply YES to proceed 👍`,
   },
+
   {
-    title: "Follow-up",
-    message:
-      "Hello {name}, just checking in regarding the site we created for {category}. Have you had a chance to review it? Let me know if you have any questions! {web_url}",
+    title: "Gentle Follow-up",
+    message: `Mam/Sir,
+
+Just following up regarding the demo website I shared for your preschool 😊
+
+🌐 Demo Link:
+{web_url}
+
+Parents usually trust schools that have a professional website.
+Shall I complete this website for you today?
+
+Please reply YES to proceed.`,
   },
+
   {
-    title: "Pricing Inquiry",
-    message:
-      "Hi {name}, thanks for reaching out! Here is the link to our full pricing brochure and your personalized site: {web_url} (or PDF: {pdf_url})",
+    title: "Pricing & Completion",
+    message: `Mam/Sir,
+
+Thank you for your interest 🙏
+
+Here is the demo website once again:
+🌐 {web_url}
+
+Once you confirm, I will:
+• Finalize all content
+• Add contact & enquiry options
+• Make it fully ready within 1 day
+
+Please reply YES to proceed, I’ll take care of everything.`,
   },
 ];
+
 
 // --- HELPER COMPONENTS (for design consistency) ---
 const InputField = ({ label, value, onChange, placeholder, type = "text" }) => (
@@ -313,27 +347,30 @@ function ViewLeadPage() {
 
   /* ------------------------------ WHATSAPP CHAT LOGIC ------------------------------ */
   // This function is called when the user hits 'Open WhatsApp & Log Action' inside the modal.
-  async function logAndOpenWhatsapp(message) {
-    try {
-      setWhatsappLoading(true);
-      // 1. Log the action in the backend
-      await API.post(`/leads/${id}/whatsapp-log`, { message });
+function logAndOpenWhatsapp(message) {
+  // 1️⃣ Clean phone
+  let phone = (lead.phone || "").replace(/\D/g, "");
+  if (phone.length === 10) phone = "91" + phone;
 
-      // 2. Open WhatsApp link in a new tab
-      const whatsappUrl = `https://wa.me/${
-        lead.phone
-      }?text=${encodeURIComponent(message)}`;
-      window.open(whatsappUrl, "_blank");
-
-      // 3. Close the modal
-      setShowWhatsappModal(false);
-    } catch (err) {
-      console.error("WhatsApp logging/opening failed:", err);
-      alert("Failed to log or open WhatsApp.");
-    } finally {
-      setWhatsappLoading(false);
-    }
+  if (phone.length < 11) {
+    alert("Invalid phone number");
+    return;
   }
+
+  const encodedMsg = encodeURIComponent(message);
+
+  // 2️⃣ OPEN WHATSAPP IMMEDIATELY (SYNC)
+  const whatsappUrl = `https://wa.me/${phone}?text=${encodedMsg}`;
+  window.location.href = whatsappUrl;
+
+  // 3️⃣ LOG IN BACKGROUND (NO AWAIT)
+  API.post(`/leads/${id}/whatsapp-log`, { message })
+    .catch(err => console.error("Log failed", err));
+
+  // 4️⃣ Close modal
+  setShowWhatsappModal(false);
+}
+
 
   async function goToFollowUp(id) {
     try {

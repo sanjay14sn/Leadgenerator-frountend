@@ -1,0 +1,53 @@
+body {
+  font-family: "Poppins", sans-serif;
+}
+
+.text-purple {
+  color: #7b2cbf;
+}
+
+.btn-purple {
+  background: #7b2cbf;
+  color: #fff;
+  border-radius: 30px;
+  padding: 10px 25px;
+}
+
+.btn-purple:hover {
+  background: #5a189a;
+  color: #fff;
+}
+
+.hero-section {
+  background: #fff5eb;
+  padding: 80px 0;
+}
+
+.hero-img {
+  max-width: 420px;
+}
+
+.section {
+  padding: 70px 0;
+}
+
+.feature-box {
+  background: #fff;
+  padding: 25px;
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}
+
+.price-box {
+  padding: 30px;
+  border-radius: 20px;
+}
+
+.price-box.pink { background: #ffe3ec; }
+.price-box.yellow { background: #fff4cc; }
+.price-box.blue { background: #e6f4ff; }
+
+.footer {
+  background: #fff5eb;
+  padding: 25px 0;
+}
