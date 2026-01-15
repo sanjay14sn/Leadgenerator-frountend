@@ -35,6 +35,9 @@ import { motion, AnimatePresence, useScroll } from "framer-motion";
  * - Dark mode switch (localStorage)
  * - Real portfolio image grid
  * - Scroll progress bar + smooth scroll
+ *
+ * THEME UPDATED:
+ * - Indigo/Blue -> Green theme (as requested)
  */
 
 const cn = (...classes) => classes.filter(Boolean).join(" ");
@@ -73,12 +76,11 @@ function useSmoothScroll() {
   }, []);
 }
 
-
 const ScrollProgress = () => {
   const { scrollYProgress } = useScroll();
   return (
     <motion.div
-      className="fixed top-0 left-0 right-0 h-[3px] z-[999] bg-indigo-600 origin-left"
+      className="fixed top-0 left-0 right-0 h-[3px] z-[999] bg-emerald-600 origin-left"
       style={{ scaleX: scrollYProgress }}
     />
   );
@@ -86,12 +88,12 @@ const ScrollProgress = () => {
 
 const SectionHeader = ({ subtitle, title, highlight, centered = true }) => (
   <div className={cn(centered ? "text-center" : "text-left", "mb-14")}>
-    <p className="text-sm font-black text-indigo-600 uppercase tracking-[0.3em] mb-4">
+    <p className="text-sm font-black text-emerald-600 uppercase tracking-[0.3em] mb-4">
       {subtitle}
     </p>
     <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white leading-tight">
       {title}{" "}
-      <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-500">
+      <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-green-500">
         {highlight}
       </span>
     </h2>
@@ -99,8 +101,8 @@ const SectionHeader = ({ subtitle, title, highlight, centered = true }) => (
 );
 
 const Pill = ({ children }) => (
-  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-50 dark:bg-white/10 border border-indigo-100 dark:border-white/10 text-indigo-700 dark:text-indigo-200 font-bold text-xs uppercase tracking-widest">
-    <span className="w-2 h-2 bg-indigo-600 rounded-full animate-pulse" />
+  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-50 dark:bg-white/10 border border-emerald-100 dark:border-white/10 text-emerald-700 dark:text-emerald-200 font-bold text-xs uppercase tracking-widest">
+    <span className="w-2 h-2 bg-emerald-600 rounded-full animate-pulse" />
     {children}
   </div>
 );
@@ -110,11 +112,11 @@ const Button = ({ variant = "primary", className = "", children, ...props }) => 
     "inline-flex items-center justify-center font-bold transition-all select-none";
   const styles = {
     primary:
-      "bg-indigo-600 text-white hover:bg-indigo-700 shadow-xl shadow-indigo-200/60 hover:-translate-y-0.5",
+      "bg-emerald-600 text-white hover:bg-emerald-700 shadow-xl shadow-emerald-200/60 hover:-translate-y-0.5",
     secondary:
       "bg-white dark:bg-white/10 text-slate-900 dark:text-white border-2 border-slate-100 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/15",
     dark:
-      "bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-indigo-600 dark:hover:bg-indigo-600 dark:hover:text-white",
+      "bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-emerald-600 dark:hover:bg-emerald-600 dark:hover:text-white",
     ghost:
       "bg-transparent text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-white/10",
   };
@@ -198,11 +200,11 @@ const Navbar = ({ theme, setTheme }) => {
       <div className="max-w-7xl mx-auto px-6">
         <div className="flex justify-between items-center">
           <a href="#top" className="flex items-center space-x-3 group">
-            <div className="bg-gradient-to-br from-indigo-600 to-blue-500 p-2 rounded-xl rotate-3 group-hover:rotate-0 transition-transform">
+            <div className="bg-gradient-to-br from-emerald-600 to-green-500 p-2 rounded-xl rotate-3 group-hover:rotate-0 transition-transform">
               <Cpu className="text-white w-7 h-7" />
             </div>
             <span className="text-2xl font-black tracking-tighter text-slate-900 dark:text-white">
-              IQ <span className="text-indigo-600">SYNC</span>
+              IQ <span className="text-emerald-600">SYNC</span>
             </span>
           </a>
 
@@ -211,7 +213,7 @@ const Navbar = ({ theme, setTheme }) => {
               <a
                 key={link.name}
                 href={link.href}
-                className="text-xs font-black text-slate-600 dark:text-slate-200 hover:text-indigo-600 dark:hover:text-indigo-400 tracking-[0.15em] transition-colors uppercase"
+                className="text-xs font-black text-slate-600 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 tracking-[0.15em] transition-colors uppercase"
               >
                 {link.name}
               </a>
@@ -252,7 +254,7 @@ const Navbar = ({ theme, setTheme }) => {
                 <a
                   key={link.name}
                   href={link.href}
-                  className="block text-2xl font-black text-slate-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400"
+                  className="block text-2xl font-black text-slate-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400"
                   onClick={() => setIsOpen(false)}
                 >
                   {link.name}
@@ -275,7 +277,7 @@ const FeatureCard = ({ icon: Icon, title, desc, points = [], badge }) => (
     className="bg-white dark:bg-slate-950 p-10 rounded-[2.5rem] border border-slate-100 dark:border-white/10 shadow-sm hover:shadow-xl transition-all"
   >
     <div className="flex items-start justify-between gap-4">
-      <Icon className="w-14 h-14 text-indigo-600" />
+      <Icon className="w-14 h-14 text-emerald-600" />
       {badge ? (
         <div className="text-xs font-black px-4 py-2 rounded-full bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 border border-green-100 dark:border-green-500/20">
           {badge}
@@ -321,12 +323,17 @@ const PricingCard = ({
     <div className="flex items-center justify-between">
       <div>
         <h4 className="text-2xl font-black">{title}</h4>
-        <p className={cn("mt-2", popular ? "text-slate-300" : "text-slate-500 dark:text-slate-300")}>
+        <p
+          className={cn(
+            "mt-2",
+            popular ? "text-slate-300" : "text-slate-500 dark:text-slate-300"
+          )}
+        >
           {subtitle}
         </p>
       </div>
       {popular && (
-        <div className="px-4 py-2 rounded-full bg-indigo-600 text-white text-xs font-black uppercase tracking-widest">
+        <div className="px-4 py-2 rounded-full bg-emerald-600 text-white text-xs font-black uppercase tracking-widest">
           Most Popular
         </div>
       )}
@@ -334,7 +341,12 @@ const PricingCard = ({
 
     <div className="mt-8">
       <div className="text-4xl font-black">{price}</div>
-      <p className={cn("mt-2", popular ? "text-slate-300" : "text-slate-500 dark:text-slate-300")}>
+      <p
+        className={cn(
+          "mt-2",
+          popular ? "text-slate-300" : "text-slate-500 dark:text-slate-300"
+        )}
+      >
         Includes premium design + launch support
       </p>
     </div>
@@ -343,9 +355,16 @@ const PricingCard = ({
       {features.map((f) => (
         <div key={f} className="flex items-center gap-3 font-semibold">
           <CheckCircle2
-            className={cn("w-5 h-5", popular ? "text-indigo-400" : "text-green-600")}
+            className={cn(
+              "w-5 h-5",
+              popular ? "text-emerald-400" : "text-green-600"
+            )}
           />
-          <span className={cn(popular ? "text-slate-100" : "text-slate-700 dark:text-slate-200")}>
+          <span
+            className={cn(
+              popular ? "text-slate-100" : "text-slate-700 dark:text-slate-200"
+            )}
+          >
             {f}
           </span>
         </div>
@@ -394,7 +413,7 @@ const FAQItem = ({ q, a }) => {
         onClick={() => setOpen(!open)}
       >
         <div className="flex items-center gap-3">
-          <HelpCircle className="w-5 h-5 text-indigo-600" />
+          <HelpCircle className="w-5 h-5 text-emerald-600" />
           <span className="font-black text-slate-900 dark:text-white">{q}</span>
         </div>
         <span className="text-slate-500 dark:text-slate-300 font-black">
@@ -447,7 +466,7 @@ const PortfolioCard = ({ title, tag, image, desc }) => (
 
       <a
         href="#contact"
-        className="mt-6 inline-flex items-center text-indigo-600 dark:text-indigo-400 font-black"
+        className="mt-6 inline-flex items-center text-emerald-600 dark:text-emerald-400 font-black"
       >
         View Details <ExternalLink className="ml-2 w-4 h-4" />
       </a>
@@ -648,7 +667,7 @@ export default function IQSyncLanding() {
   return (
     <div
       id="top"
-      className="bg-[#fcfcfd] dark:bg-slate-950 selection:bg-indigo-100 selection:text-indigo-900"
+      className="bg-[#fcfcfd] dark:bg-slate-950 selection:bg-emerald-100 selection:text-emerald-900"
     >
       <ScrollProgress />
       <Navbar theme={theme} setTheme={setTheme} />
@@ -656,8 +675,8 @@ export default function IQSyncLanding() {
       {/* HERO */}
       <section className="relative min-h-screen flex items-center pt-24 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute -top-24 -right-24 w-[480px] h-[480px] bg-indigo-200/40 dark:bg-indigo-500/10 blur-3xl rounded-full" />
-          <div className="absolute -bottom-24 -left-24 w-[520px] h-[520px] bg-blue-200/40 dark:bg-blue-500/10 blur-3xl rounded-full" />
+          <div className="absolute -top-24 -right-24 w-[480px] h-[480px] bg-emerald-200/40 dark:bg-emerald-500/10 blur-3xl rounded-full" />
+          <div className="absolute -bottom-24 -left-24 w-[520px] h-[520px] bg-green-200/40 dark:bg-green-500/10 blur-3xl rounded-full" />
         </div>
 
         <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center relative z-10">
@@ -671,7 +690,7 @@ export default function IQSyncLanding() {
 
             <h1 className="text-5xl md:text-7xl font-black text-slate-900 dark:text-white leading-[0.95] mt-8 mb-7">
               Smart Solutions. <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-br from-indigo-600 to-blue-600">
+              <span className="text-transparent bg-clip-text bg-gradient-to-br from-emerald-600 to-green-600">
                 Synchronized
               </span>{" "}
               <br />
@@ -754,7 +773,7 @@ export default function IQSyncLanding() {
                   missing one key element — a premium online identity.
                 </p>
 
-                <div className="bg-indigo-50 dark:bg-white/5 p-6 rounded-2xl border-l-4 border-indigo-600">
+                <div className="bg-emerald-50 dark:bg-white/5 p-6 rounded-2xl border-l-4 border-emerald-600">
                   <p className="font-black text-slate-900 dark:text-white mb-2">
                     The name IQ Sync represents what we do best:
                   </p>
@@ -779,7 +798,7 @@ export default function IQSyncLanding() {
                 variants={fadeUp}
                 className="p-8 rounded-3xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10"
               >
-                <Target className="text-indigo-600 w-12 h-12 mb-6" />
+                <Target className="text-emerald-600 w-12 h-12 mb-6" />
                 <h4 className="text-2xl font-black text-slate-900 dark:text-white mb-4">
                   Our Mission
                 </h4>
@@ -796,7 +815,7 @@ export default function IQSyncLanding() {
                 variants={fadeUp}
                 className="p-8 rounded-3xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10"
               >
-                <Eye className="text-blue-600 w-12 h-12 mb-6" />
+                <Eye className="text-green-600 w-12 h-12 mb-6" />
                 <h4 className="text-2xl font-black text-slate-900 dark:text-white mb-4">
                   Our Vision
                 </h4>
@@ -844,7 +863,7 @@ export default function IQSyncLanding() {
                 variants={fadeUp}
                 className="bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-[2.5rem] p-8 hover:shadow-xl transition-all"
               >
-                <div className="w-14 h-14 rounded-2xl bg-indigo-600 text-white flex items-center justify-center mb-6">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-600 text-white flex items-center justify-center mb-6">
                   <p.icon className="w-7 h-7" />
                 </div>
                 <h4 className="text-xl font-black text-slate-900 dark:text-white mb-3">
@@ -891,7 +910,7 @@ export default function IQSyncLanding() {
 
           <div className="mt-12 text-center text-slate-500 dark:text-slate-300 font-semibold">
             Need a custom plan?{" "}
-            <a href="#contact" className="text-indigo-600 dark:text-indigo-400 font-black">
+            <a href="#contact" className="text-emerald-600 dark:text-emerald-400 font-black">
               Talk to us
             </a>
             .
@@ -939,7 +958,7 @@ export default function IQSyncLanding() {
 
           <div className="grid md:grid-cols-3 gap-8">
             <div className="p-8 rounded-[2rem] bg-white dark:bg-slate-950 border border-slate-100 dark:border-white/10 shadow-sm">
-              <Building2 className="text-indigo-600 mb-6 w-10 h-10" />
+              <Building2 className="text-emerald-600 mb-6 w-10 h-10" />
               <h4 className="text-2xl font-black mb-4 text-slate-900 dark:text-white">
                 Head Office
               </h4>
@@ -949,7 +968,7 @@ export default function IQSyncLanding() {
             </div>
 
             <div className="p-8 rounded-[2rem] bg-white dark:bg-slate-950 border border-slate-100 dark:border-white/10 shadow-sm">
-              <Navigation className="text-blue-600 mb-6 w-10 h-10" />
+              <Navigation className="text-green-600 mb-6 w-10 h-10" />
               <h4 className="text-2xl font-black mb-4 text-slate-900 dark:text-white">
                 Chennai Hub
               </h4>
@@ -959,7 +978,7 @@ export default function IQSyncLanding() {
             </div>
 
             <div className="p-8 rounded-[2rem] bg-slate-900 text-white border border-slate-800 shadow-sm">
-              <Globe className="text-indigo-400 mb-6 w-10 h-10" />
+              <Globe className="text-emerald-400 mb-6 w-10 h-10" />
               <h4 className="text-2xl font-black mb-4">Remote Office</h4>
               <p className="text-slate-300 font-semibold leading-relaxed">
                 Distributed team supporting clients across industries with fast delivery and consistent quality.
@@ -972,7 +991,7 @@ export default function IQSyncLanding() {
       {/* CONTACT */}
       <section id="contact" className="py-28 bg-white dark:bg-slate-950">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="bg-indigo-600 rounded-[3rem] p-12 lg:p-20 text-white flex flex-col lg:flex-row items-center justify-between gap-12">
+          <div className="bg-emerald-600 rounded-[3rem] p-12 lg:p-20 text-white flex flex-col lg:flex-row items-center justify-between gap-12">
             <div className="lg:w-1/2">
               <h2 className="text-5xl font-black mb-8 italic">Ready to Sync?</h2>
 
@@ -1003,23 +1022,23 @@ export default function IQSyncLanding() {
                 <input
                   type="text"
                   placeholder="Full Name"
-                  className="w-full p-4 bg-slate-50 rounded-xl outline-none focus:ring-2 focus:ring-indigo-600"
+                  className="w-full p-4 bg-slate-50 rounded-xl outline-none focus:ring-2 focus:ring-emerald-600"
                 />
                 <input
                   type="email"
                   placeholder="Email"
-                  className="w-full p-4 bg-slate-50 rounded-xl outline-none focus:ring-2 focus:ring-indigo-600"
+                  className="w-full p-4 bg-slate-50 rounded-xl outline-none focus:ring-2 focus:ring-emerald-600"
                 />
                 <input
                   type="text"
                   placeholder="Phone Number"
-                  className="w-full p-4 bg-slate-50 rounded-xl outline-none focus:ring-2 focus:ring-indigo-600"
+                  className="w-full p-4 bg-slate-50 rounded-xl outline-none focus:ring-2 focus:ring-emerald-600"
                 />
                 <textarea
                   placeholder="Tell us what you want (Website / Marketing / App / CRM)"
-                  className="w-full p-4 bg-slate-50 rounded-xl outline-none focus:ring-2 focus:ring-indigo-600 h-28"
+                  className="w-full p-4 bg-slate-50 rounded-xl outline-none focus:ring-2 focus:ring-emerald-600 h-28"
                 />
-                <button className="w-full bg-indigo-600 text-white py-4 rounded-xl font-black hover:bg-slate-900 transition-all">
+                <button className="w-full bg-emerald-600 text-white py-4 rounded-xl font-black hover:bg-slate-900 transition-all">
                   Submit Request
                 </button>
 
@@ -1037,7 +1056,7 @@ export default function IQSyncLanding() {
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center space-x-3 mb-6">
-              <Cpu className="text-indigo-500 w-8 h-8" />
+              <Cpu className="text-emerald-500 w-8 h-8" />
               <span className="text-3xl font-black">IQ SYNC</span>
             </div>
             <p className="text-slate-400 text-lg max-w-sm font-semibold leading-relaxed">
@@ -1046,7 +1065,7 @@ export default function IQSyncLanding() {
           </div>
 
           <div>
-            <h6 className="font-black mb-6 text-indigo-400 uppercase tracking-widest text-sm">
+            <h6 className="font-black mb-6 text-emerald-400 uppercase tracking-widest text-sm">
               Company
             </h6>
             <ul className="space-y-3 text-slate-400 font-semibold">
@@ -1057,7 +1076,7 @@ export default function IQSyncLanding() {
           </div>
 
           <div>
-            <h6 className="font-black mb-6 text-indigo-400 uppercase tracking-widest text-sm">
+            <h6 className="font-black mb-6 text-emerald-400 uppercase tracking-widest text-sm">
               Contact
             </h6>
             <ul className="space-y-3 text-slate-400 font-semibold">
