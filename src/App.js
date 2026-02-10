@@ -32,7 +32,7 @@ export default function App() {
         <Route path="/" element={<IQSyncLanding />} />
         <Route path="/login" element={<LoginPage />} />
 
-        {/* 🔒 PROTECTED APP (WITH GLOBAL LAYOUT) */}
+        {/* 🔒 PROTECTED ROUTES (WITH LAYOUT) */}
         <Route
           element={
             <PrivateRoute>
@@ -47,6 +47,7 @@ export default function App() {
           <Route path="/aiposter" element={<AIPoster />} />
           <Route path="/quotes" element={<SmartQuotes />} />
 
+          {/* 🔐 SUPER ADMIN ONLY */}
           <Route
             path="/cloudflare"
             element={
@@ -56,15 +57,17 @@ export default function App() {
             }
           />
 
+          {/* 🔁 LEADS */}
           <Route path="/leads/:id/edit" element={<ViewLeadPage />} />
           <Route path="/leads/:id/templates" element={<ChooseTemplatePage />} />
 
+          {/* 👥 ADMIN */}
           <Route path="/admin/teammates" element={<TeammatesPage />} />
           <Route path="/admin/teammates/new" element={<AddTeammatePage />} />
         </Route>
 
-        {/* 🌍 FALLBACK */}
-        <Route path="*" element={<Navigate to="/" />} />
+        {/* 🚫 FALLBACK */}
+        <Route path="*" element={<Navigate to="/" replace />} />
 
       </Routes>
     </BrowserRouter>
