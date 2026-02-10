@@ -1,7 +1,14 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
+/* ---------- PUBLIC PAGES ---------- */
 import LoginPage from "./pages/LoginPage";
-import Home from "./pages/Home";
+import IQSyncLanding from "./pages/website";
+
+/* ---------- LAYOUT ---------- */
+import AppLayout from "./layouts/AppLayout";
+
+/* ---------- PROTECTED PAGES ---------- */
+import Home from "./pages/Dashboard";
 import AllLeadsPage from "./pages/AllLeadsPage";
 import FollowUpPage from "./pages/FollowUpPage";
 import ViewLeadPage from "./pages/ViewLeadPage";
@@ -11,7 +18,9 @@ import InstaLeads from "./pages/InstaLeads";
 import CloudflareManager from "./pages/CloudflareManager";
 import ChooseTemplatePage from "./pages/ChooseTemplatePage";
 import AIPoster from "./pages/AIPoster";
-import IQSyncLanding from "./pages/website";
+import SmartQuotes from "./pages/SmartQuotes";
+
+/* ---------- ROUTE GUARD ---------- */
 import PrivateRoute from "./routes/PrivateRoute";
 
 export default function App() {
@@ -23,98 +32,38 @@ export default function App() {
         <Route path="/" element={<IQSyncLanding />} />
         <Route path="/login" element={<LoginPage />} />
 
-        {/* 🔒 PROTECTED ROUTES */}
+        {/* 🔒 PROTECTED APP (WITH GLOBAL LAYOUT) */}
         <Route
-          path="/home"
           element={
             <PrivateRoute>
-              <Home />
+              <AppLayout />
             </PrivateRoute>
           }
-        />
+        >
+          <Route path="/home" element={<Home />} />
+          <Route path="/all-leads" element={<AllLeadsPage />} />
+          <Route path="/followups" element={<FollowUpPage />} />
+          <Route path="/instaleads" element={<InstaLeads />} />
+          <Route path="/aiposter" element={<AIPoster />} />
+          <Route path="/quotes" element={<SmartQuotes />} />
 
-        <Route
-          path="/all-leads"
-          element={
-            <PrivateRoute>
-              <AllLeadsPage />
-            </PrivateRoute>
-          }
-        />
+          <Route
+            path="/cloudflare"
+            element={
+              <PrivateRoute roles={["SUPER_ADMIN"]}>
+                <CloudflareManager />
+              </PrivateRoute>
+            }
+          />
 
-        <Route
-          path="/leads/:id/templates"
-          element={
-            <PrivateRoute>
-              <ChooseTemplatePage />
-            </PrivateRoute>
-          }
-        />
+          <Route path="/leads/:id/edit" element={<ViewLeadPage />} />
+          <Route path="/leads/:id/templates" element={<ChooseTemplatePage />} />
 
-        <Route
-          path="/leads/:id/edit"
-          element={
-            <PrivateRoute>
-              <ViewLeadPage />
-            </PrivateRoute>
-          }
-        />
+          <Route path="/admin/teammates" element={<TeammatesPage />} />
+          <Route path="/admin/teammates/new" element={<AddTeammatePage />} />
+        </Route>
 
-        <Route
-          path="/followups"
-          element={
-            <PrivateRoute>
-              <FollowUpPage />
-            </PrivateRoute>
-          }
-        />
-
-        <Route
-          path="/instaleads"
-          element={
-            <PrivateRoute>
-              <InstaLeads />
-            </PrivateRoute>
-          }
-        />
-
-        <Route
-          path="/cloudflare"
-          element={
-            <PrivateRoute roles={["SUPER_ADMIN"]}>
-              <CloudflareManager />
-            </PrivateRoute>
-          }
-        />
-
-        <Route
-          path="/admin/teammates"
-          element={
-            <PrivateRoute>
-              <TeammatesPage />
-            </PrivateRoute>
-          }
-        />
-
-        <Route
-          path="/admin/teammates/new"
-          element={
-            <PrivateRoute>
-              <AddTeammatePage />
-            </PrivateRoute>
-          }
-        />
-
-        <Route
-          path="/aiposter"
-          element={
-            <PrivateRoute>
-              <AIPoster />
-            </PrivateRoute>
-          }
-        />
-
-        {/* 🌍 FALLBACK → redirect unknown routes to website */}
+        {/* 🌍 FALLBACK */}
         <Route path="*" element={<Navigate to="/" />} />
 
       </Routes>

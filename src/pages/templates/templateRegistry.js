@@ -13,25 +13,29 @@ export const TEMPLATE_LIST = [
     key: "default",
     name: "Business Classic",
     component: TemplateA,
-    preview: "/previews/template-a.png",
+    preview: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=800",
+    category: "Business"
   },
   {
     key: "carwash",
     name: "Car Wash / Auto Care",
     component: TemplateB_CarWash,
-    preview: "/previews/template-carwash.png",
+    preview: "https://images.unsplash.com/photo-1601362840469-51e4d8d58785?auto=format&fit=crop&q=80&w=800",
+    category: "Business"
   },
   {
     key: "salon",
     name: "Salon / Beauty",
     component: TemplateC_Salon,
-    preview: "/previews/template-salon.png",
+    preview: "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=800",
+    category: "Business"
   },
   {
     key: "jewelry",
     name: "Jewelry Store",
     component: TemplateD_Jewels,
-    preview: "/previews/template-jewels.png",
+    preview: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&q=80&w=800",
+    category: "Business"
   },
 ];
 
