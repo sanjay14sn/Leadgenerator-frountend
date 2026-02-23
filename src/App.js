@@ -17,6 +17,7 @@ import AddTeammatePage from "./pages/AddTeammatePage";
 import InstaLeads from "./pages/InstaLeads";
 import CloudflareManager from "./pages/CloudflareManager";
 import ChooseTemplatePage from "./pages/ChooseTemplatePage";
+import AIWebsiteBuilder from "./pages/AIWebsiteBuilder";
 import AIPoster from "./pages/AIPoster";
 import SmartQuotes from "./pages/SmartQuotes";
 
@@ -60,6 +61,7 @@ export default function App() {
           {/* 🔁 LEADS */}
           <Route path="/leads/:id/edit" element={<ViewLeadPage />} />
           <Route path="/leads/:id/templates" element={<ChooseTemplatePage />} />
+          <Route path="/leads/:id/ai-builder" element={<AIWebsiteBuilder />} />
 
           {/* 👥 ADMIN */}
           <Route path="/admin/teammates" element={<TeammatesPage />} />

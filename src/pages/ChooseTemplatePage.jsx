@@ -8,7 +8,7 @@ export default function ChooseTemplatePage() {
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState("All");
 
-  const categories = ["All", "Business", "Portfolio", "Medical", "Education"];
+  const categories = ["All", "AI Design", "Business", "Portfolio", "Medical", "Education"];
 
   const filteredTemplates = activeCategory === "All"
     ? TEMPLATE_LIST
@@ -40,8 +40,8 @@ export default function ChooseTemplatePage() {
               key={cat}
               onClick={() => setActiveCategory(cat)}
               className={`px-6 py-2 rounded-full text-sm font-semibold transition-all ${activeCategory === cat
-                  ? "bg-gray-900 text-white shadow-lg shadow-gray-200"
-                  : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
+                ? "bg-gray-900 text-white shadow-lg shadow-gray-200"
+                : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
                 }`}
             >
               {cat}
@@ -51,6 +51,37 @@ export default function ChooseTemplatePage() {
 
         {/* --- TEMPLATE GRID --- */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {/* AI Design Option Card */}
+          {(activeCategory === "All" || activeCategory === "AI Design") && (
+            <div
+              className="group bg-gradient-to-br from-[#1ABC9C] via-emerald-600 to-teal-700 rounded-2xl overflow-hidden border border-transparent hover:shadow-2xl transition-all duration-300 relative flex flex-col justify-between"
+            >
+              <div className="p-8 text-white relative z-10">
+                <div className="bg-white/20 backdrop-blur-md w-14 h-14 rounded-2xl flex items-center justify-center mb-6 ring-1 ring-white/30 group-hover:scale-110 transition-transform">
+                  <Sparkles className="text-white w-8 h-8" />
+                </div>
+                <h3 className="text-2xl font-black mb-3">AI Poster Studio</h3>
+                <p className="text-teal-50 text-sm font-medium leading-relaxed opacity-90">
+                  Don't want to use a template? Let our AI design a custom poster for you in seconds.
+                </p>
+              </div>
+
+              <div className="p-6 mt-auto relative z-10">
+                <button
+                  onClick={() => navigate(`/leads/${id}/ai-builder`)}
+                  className="w-full bg-white text-[#1ABC9C] px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors shadow-lg"
+                >
+                  Create with AI <Sparkles size={18} className="fill-current" />
+                </button>
+              </div>
+
+              {/* Decorative background elements */}
+              <div className="absolute top-0 right-0 -tr-y-4 tr-x-4 opacity-10 group-hover:scale-125 transition-transform duration-700">
+                <Sparkles size={150} />
+              </div>
+            </div>
+          )}
+
           {filteredTemplates.map((tpl) => (
             <div
               key={tpl.key}

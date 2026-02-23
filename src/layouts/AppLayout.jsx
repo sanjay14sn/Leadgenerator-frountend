@@ -104,16 +104,18 @@ export default function AppLayout() {
 
       {/* CONTENT */}
       <main
-        className={mainContentClass}
+        className={location.pathname.includes("/ai-builder") ? "p-0 overflow-hidden" : mainContentClass}
         style={{ marginTop: `calc(${topBarHeight} + ${secondaryNavHeight})` }}
       >
-        <div className="max-w-7xl mx-auto">
-          {location.pathname !== "/aiposter" && !location.pathname.includes("/templates") && (
-            <div className="mb-8">
-              <p className="text-sm text-gray-500">IQSync / {currentTitle}</p>
-              <h1 className="text-3xl font-bold">{currentTitle}</h1>
-            </div>
-          )}
+        <div className={location.pathname.includes("/ai-builder") ? "w-full" : "max-w-7xl mx-auto"}>
+          {location.pathname !== "/aiposter" &&
+            !location.pathname.includes("/templates") &&
+            !location.pathname.includes("/leads/") && (
+              <div className="mb-8">
+                <p className="text-sm text-gray-500">IQSync / {currentTitle}</p>
+                <h1 className="text-3xl font-bold">{currentTitle}</h1>
+              </div>
+            )}
 
           <Outlet />
         </div>
