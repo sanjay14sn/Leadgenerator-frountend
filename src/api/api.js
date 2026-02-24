@@ -6,7 +6,7 @@ import axios from "axios";
 //   timeout: 15001,
 // });
 const API = axios.create({
-  baseURL: "http://api.iqsync.in/api",
+  baseURL: "https://api.iqsync.in/api",
   timeout: 15001,
 });
 // ---------------- REQUEST ----------------
