@@ -1,11 +1,14 @@
 import axios from "axios";
 
+// const API = axios.create({
+//   baseURL: "http://localhost:5024/api",
+//   // baseURL: "https://leadgenerator-backend-production.up.railway.app/api",
+//   timeout: 15001,
+// });
 const API = axios.create({
-  baseURL: "http://localhost:5024/api",
-  // baseURL: "https://leadgenerator-backend-production.up.railway.app/api",
+  baseURL: "http://13.48.194.170:5010/api",
   timeout: 15001,
 });
-
 // ---------------- REQUEST ----------------
 API.interceptors.request.use(
   (config) => {
