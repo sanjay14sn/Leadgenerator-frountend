@@ -707,9 +707,9 @@ export default function IQSyncLanding() {
                 <Button className="w-full sm:w-auto">Get Free Demo</Button>
               </a>
 
-              <a href="tel:7868000645">
+              <a href="tel:6385411135">
                 <Button variant="secondary" className="w-full sm:w-auto">
-                  7868000645 <Phone className="ml-2 w-5 h-5" />
+                  6385411135 <Phone className="ml-2 w-5 h-5" />
                 </Button>
               </a>
             </div>
@@ -957,15 +957,7 @@ export default function IQSyncLanding() {
           <SectionHeader subtitle="Presence" title="Our Strategic" highlight="Network" />
 
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="p-8 rounded-[2rem] bg-white dark:bg-slate-950 border border-slate-100 dark:border-white/10 shadow-sm">
-              <Building2 className="text-emerald-600 mb-6 w-10 h-10" />
-              <h4 className="text-2xl font-black mb-4 text-slate-900 dark:text-white">
-                Head Office
-              </h4>
-              <p className="text-slate-600 dark:text-slate-300 font-semibold leading-relaxed">
-                Bhive 46/1, NH 44, Kudlu Gate, Hosapalaya, Bengaluru, KA 560068
-              </p>
-            </div>
+
 
             <div className="p-8 rounded-[2rem] bg-white dark:bg-slate-950 border border-slate-100 dark:border-white/10 shadow-sm">
               <Navigation className="text-green-600 mb-6 w-10 h-10" />
@@ -1010,7 +1002,7 @@ export default function IQSyncLanding() {
                   <div className="bg-white/10 p-4 rounded-2xl">
                     <Phone />
                   </div>
-                  <span className="text-xl font-semibold">7868000645</span>
+                  <span className="text-xl font-semibold">6385411135</span>
                 </div>
               </div>
             </div>
@@ -1081,7 +1073,7 @@ export default function IQSyncLanding() {
             </h6>
             <ul className="space-y-3 text-slate-400 font-semibold">
               <li className="flex items-center gap-2">
-                <Phone className="w-4 h-4" /> 7868000645
+                <Phone className="w-4 h-4" /> 6385411135
               </li>
               <li className="flex items-center gap-2">
                 <Mail className="w-4 h-4" /> engineering@iqsync.io
