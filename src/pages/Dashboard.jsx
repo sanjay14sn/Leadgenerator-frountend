@@ -24,8 +24,8 @@ const MetricCard = ({ title, value, icon }) => (
   </div>
 );
 
-/* ================== HOME PAGE ================== */
-export default function Home() {
+/* ================== DASHBOARD PAGE ================== */
+export default function Dashboard() {
   const [leads, setLeads] = useState([]);
   const [keyword, setKeyword] = useState("");
   const [locationText, setLocationText] = useState("");

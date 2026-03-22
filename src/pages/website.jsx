@@ -439,7 +439,7 @@ const FAQItem = ({ q, a }) => {
   );
 };
 
-const PortfolioCard = ({ title, tag, image, desc }) => (
+const PortfolioCard = ({ title, tag, image, desc, link = "#contact" }) => (
   <motion.div
     variants={fadeUp}
     className="group relative overflow-hidden rounded-[2.5rem] border border-slate-100 dark:border-white/10 bg-white dark:bg-slate-950 shadow-sm hover:shadow-xl transition-all"
@@ -465,7 +465,7 @@ const PortfolioCard = ({ title, tag, image, desc }) => (
       </p>
 
       <a
-        href="#contact"
+        href={link}
         className="mt-6 inline-flex items-center text-emerald-600 dark:text-emerald-400 font-black"
       >
         View Details <ExternalLink className="ml-2 w-4 h-4" />
@@ -544,46 +544,17 @@ export default function IQSyncLanding() {
 
   const portfolio = [
     {
-      title: "Premium Business Website",
-      tag: "Website",
-      desc: "Clean layout, premium UI, and strong CTA structure designed for conversions.",
-      image:
-        "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=1400",
-    },
-    {
-      title: "E-commerce Storefront",
-      tag: "E-Commerce",
-      desc: "Modern product UI, category flow, and fast checkout experience.",
-      image:
-        "https://images.unsplash.com/photo-1557825835-70d97c4aa567?auto=format&fit=crop&q=80&w=1400",
-    },
-    {
-      title: "CRM Dashboard System",
+      title: "Dental CRM",
       tag: "CRM",
-      desc: "Pipeline tracking, follow-ups, analytics, and automation workflows.",
-      image:
-        "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=1400",
+      desc: "Comprehensive clinic management system with patient records, scheduling, and billing.",
+      image: "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&q=80&w=1400",
     },
     {
-      title: "Social Media Growth Campaign",
+      title: "Lead Generation Tool",
       tag: "Marketing",
-      desc: "Content strategy + creatives designed to build authority and generate leads.",
-      image:
-        "https://images.unsplash.com/photo-1557838923-2985c318be48?auto=format&fit=crop&q=80&w=1400",
-    },
-    {
-      title: "Mobile Booking App",
-      tag: "Mobile App",
-      desc: "Smooth UI, fast flow, and modern experience for service bookings.",
-      image:
-        "data:image/jpeg;base64,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",
-    },
-    {
-      title: "Corporate Landing Page",
-      tag: "Landing Page",
-      desc: "Premium sections with motion design and lead-focused layout.",
-      image:
-        "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=1400",
+      desc: "Advanced tool for capturing, tracking, and converting high-quality leads automatically.",
+      image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=1400",
+      link: "https://iqsync.in/home",
     },
   ];
 

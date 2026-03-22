@@ -4,7 +4,7 @@ import { Outlet, useNavigate, useLocation } from "react-router-dom";
 
 /* ------------------ HELPERS ------------------ */
 const getCurrentTitle = (pathname) => {
-  if (pathname === "/") return "Dashboard Overview";
+  if (pathname === "/home") return "Dashboard Overview";
   if (pathname === "/all-leads") return "All Leads Database";
   if (pathname === "/followups") return "Assigned Leads (Follow-Up)";
   if (pathname === "/instaleads") return "Insta Leads (BETA)";
@@ -92,7 +92,7 @@ export default function AppLayout() {
         style={{ height: secondaryNavHeight }}
       >
         <div className="max-w-7xl mx-auto flex h-full">
-          <HorizontalNavItem label="Home" active={location.pathname === "/"} onClick={() => navigate("/")} />
+          <HorizontalNavItem label="Dashboard" active={location.pathname === "/home"} onClick={() => navigate("/home")} />
           <HorizontalNavItem label="All Leads" active={location.pathname === "/all-leads"} onClick={() => navigate("/all-leads")} />
           <HorizontalNavItem label="Assign Leads" active={location.pathname === "/followups"} onClick={() => navigate("/followups")} />
           <HorizontalNavItem label="Smart Quotes" active={location.pathname === "/quotes"} onClick={() => navigate("/quotes")} />

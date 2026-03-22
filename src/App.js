@@ -8,7 +8,7 @@ import IQSyncLanding from "./pages/website";
 import AppLayout from "./layouts/AppLayout";
 
 /* ---------- PROTECTED PAGES ---------- */
-import Home from "./pages/Dashboard";
+import Dashboard from "./pages/Dashboard";
 import AllLeadsPage from "./pages/AllLeadsPage";
 import FollowUpPage from "./pages/FollowUpPage";
 import ViewLeadPage from "./pages/ViewLeadPage";
@@ -41,7 +41,7 @@ export default function App() {
             </PrivateRoute>
           }
         >
-          <Route path="/home" element={<Home />} />
+          <Route path="/home" element={<Dashboard />} />
           <Route path="/all-leads" element={<AllLeadsPage />} />
           <Route path="/followups" element={<FollowUpPage />} />
           <Route path="/instaleads" element={<InstaLeads />} />
