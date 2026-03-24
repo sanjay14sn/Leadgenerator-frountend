@@ -1,17 +1,11 @@
-// src/components/LeadTable.jsx
+// src/components/LeadTable.js
 
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
 /**
  * LeadTable Component
- * Renders a table of leads in a CRM style with pagination controls.
- * @param {object[]} leads - Array of lead objects for the current page.
- * @param {function} [onFollowUp] - Function to call for the "Follow-up" action.
- * @param {number} totalItems - Total count of all leads (for calculating pages).
- * @param {number} itemsPerPage - Number of items to show per page.
- * @param {number} currentPage - The current page number (1-indexed).
- * @param {function} onPageChange - Function to call when a page number is clicked.
+ * Renders a table of leads in a CRM style with pagination controls and multi-selection.
  */
 export default function LeadTable({
   leads,
@@ -20,18 +14,38 @@ export default function LeadTable({
   itemsPerPage,
   currentPage,
   onPageChange,
+  onStatusChange,
+  selectedIds = [],
+  onSelectionChange,
 }) {
   const navigate = useNavigate();
 
   // --- PAGINATION LOGIC ---
   const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const pageNumbers = [];
-  // Show 1, 2, ..., totalPages - 1, totalPages (or a limited set)
-  for (let i = 1; i <= totalPages; i++) {
-    pageNumbers.push(i);
-  }
 
-  // Helper function to extract a cleaner location name (unchanged)
+  const getPageNumbers = () => {
+    const pageNumbers = [];
+    const maxVisiblePages = 5;
+
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) pageNumbers.push(i);
+    } else {
+      let startPage = Math.max(1, currentPage - 2);
+      let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+      if (endPage === totalPages) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+      }
+
+      for (let i = startPage; i <= endPage; i++) {
+        pageNumbers.push(i);
+      }
+    }
+    return pageNumbers;
+  };
+
+  const pageNumbers = getPageNumbers();
+
   const getLocality = (address) => {
     if (!address) return "N/A";
     const parts = address
@@ -44,7 +58,6 @@ export default function LeadTable({
     return parts[0];
   };
 
-  // Helper to determine status color (unchanged)
   const getStatusStyle = (status) => {
     switch (status) {
       case "INTERESTED":
@@ -58,6 +71,15 @@ export default function LeadTable({
       default:
         return "bg-gray-100 text-gray-800";
     }
+  };
+
+  const [statusMenuId, setStatusMenuId] = React.useState(null);
+
+  const handleStatusUpdate = async (leadId, newStatus) => {
+    if (onStatusChange) {
+      await onStatusChange(leadId, newStatus);
+    }
+    setStatusMenuId(null);
   };
 
   const handleViewLead = (leadId) => {
@@ -74,12 +96,25 @@ export default function LeadTable({
   }
 
   return (
-    <div className="rounded-xl shadow-lg border border-gray-200">
+    <div className="rounded-xl shadow-lg border border-gray-200 bg-white">
       <div className="overflow-x-auto">
-        {/* Table Content (same as before) */}
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
+              <th className="px-6 py-3 text-left">
+                <input
+                  type="checkbox"
+                  className="w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500 cursor-pointer"
+                  checked={leads.length > 0 && selectedIds.length === leads.length}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      onSelectionChange(leads.map((l) => l._id));
+                    } else {
+                      onSelectionChange([]);
+                    }
+                  }}
+                />
+              </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Lead Name
               </th>
@@ -105,65 +140,81 @@ export default function LeadTable({
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {leads.map((lead) => (
-              <tr key={lead._id} className="hover:bg-gray-50">
-                {/* Lead Name */}
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+              <tr key={lead._id} className={`hover:bg-gray-50 transition-colors ${selectedIds.includes(lead._id) ? "bg-teal-50/50" : ""}`}>
+                <td className="px-6 py-4">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500 cursor-pointer"
+                    checked={selectedIds.includes(lead._id)}
+                    onChange={() => {
+                      if (selectedIds.includes(lead._id)) {
+                        onSelectionChange(selectedIds.filter((id) => id !== lead._id));
+                      } else {
+                        onSelectionChange([...selectedIds, lead._id]);
+                      }
+                    }}
+                  />
+                </td>
+                <td className="px-3 sm:px-6 py-4 text-sm font-semibold text-gray-900 min-w-[150px]">
                   {lead.name || "N/A"}
                 </td>
-
-                {/* Category / Location */}
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                  <div className="font-medium">{lead.category || "N/A"}</div>
-                  <div className="text-xs text-gray-500">
-                    {getLocality(lead.address)}
-                  </div>
+                <td className="px-3 sm:px-6 py-4 text-sm text-gray-600 min-w-[200px]">
+                  <div className="font-medium text-slate-800">{lead.category || "N/A"}</div>
+                  <div className="text-xs text-gray-500">{getLocality(lead.address)}</div>
                 </td>
-
-                {/* Score */}
                 <td className="px-3 py-4 whitespace-nowrap text-center text-sm font-bold text-teal-600">
                   {lead.lead_score || 0}
                 </td>
-
-                {/* Website Exists */}
                 <td className="px-3 py-4 whitespace-nowrap text-center">
                   <span role="img" aria-label="website-status">
                     {lead.hasWebsite ? "🌐 Yes" : "❌ No"}
                   </span>
                 </td>
-
-                {/* WhatsApp Available */}
                 <td className="px-3 py-4 whitespace-nowrap text-center">
                   <span role="img" aria-label="whatsapp-status">
                     {lead.whatsapp ? "✅ Yes" : "⛔ No"}
                   </span>
                 </td>
-
-                {/* Pipeline Status */}
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusStyle(
-                      lead.followup?.status
-                    )}`}
-                  >
-                    {lead.followup?.status || "New Lead"}
-                  </span>
-                </td>
-
-                {/* Actions (CRM Style) */}
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  {onFollowUp && (
+                <td className="px-6 py-4 whitespace-nowrap relative">
+                  <div className="relative">
                     <button
-                      onClick={() => onFollowUp(lead._id)}
-                      className="text-indigo-600 hover:text-indigo-900 font-semibold mr-3 transition"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setStatusMenuId(statusMenuId === lead._id ? null : lead._id);
+                      }}
+                      className={`px-3 py-1 inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-wider rounded-full border shadow-sm transition-all hover:ring-2 hover:ring-black/5 ${getStatusStyle(
+                        lead.followup?.status
+                      )}`}
                     >
-                      Follow-up
+                      <span>🔄</span>
+                      {lead.followup?.status || "New Lead"}
+                      <span className="opacity-40 text-[8px]">▼</span>
                     </button>
-                  )}
-
-                  {/* Mandatory View Button */}
+                    {statusMenuId === lead._id && (
+                      <div className="absolute left-0 mt-2 bg-white border border-gray-100 shadow-2xl rounded-2xl w-48 z-50 py-2 animate-in fade-in zoom-in duration-200 ring-4 ring-black/5">
+                        {["PENDING", "CONTACTED", "INTERESTED", "NOT_INTERESTED", "NOT_REACHABLE", "COMPLETED"].map((s) => (
+                          <button
+                            key={s}
+                            className={`block w-full text-left px-5 py-2.5 text-[11px] font-bold transition ${lead.followup?.status === s
+                              ? "bg-teal-50 text-[#1ABC9C]"
+                              : "text-gray-600 hover:bg-gray-50"
+                              }`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStatusUpdate(lead._id, s);
+                            }}
+                          >
+                            {s.replace("_", " ")}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <button
                     onClick={() => handleViewLead(lead._id)}
-                    className="bg-[#1ABC9C] text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-teal-700 transition"
+                    className="bg-teal-600 text-white px-4 py-1.5 rounded-lg text-xs font-black hover:bg-teal-700 transition shadow-sm"
                   >
                     View
                   </button>
@@ -174,9 +225,8 @@ export default function LeadTable({
         </table>
       </div>
 
-      {/* --- PAGINATION CONTROLS --- */}
       {totalPages > 1 && (
-        <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+        <div className="bg-white px-4 py-4 flex items-center justify-between border-t border-gray-100 rounded-b-xl">
           <div className="flex-1 flex justify-between sm:hidden">
             <button
               onClick={() => onPageChange(currentPage - 1)}
@@ -193,91 +243,31 @@ export default function LeadTable({
               Next
             </button>
           </div>
-
           <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm text-gray-700">
-                Showing{" "}
-                <span className="font-medium">
-                  {(currentPage - 1) * itemsPerPage + 1}
-                </span>{" "}
-                to{" "}
-                <span className="font-medium">
-                  {Math.min(currentPage * itemsPerPage, totalItems)}
-                </span>{" "}
-                of <span className="font-medium">{totalItems}</span> results
+              <p className="text-sm text-gray-700 font-medium">
+                Showing <span className="font-bold">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-bold">{Math.min(currentPage * itemsPerPage, totalItems)}</span> of <span className="font-bold">{totalItems}</span> results
               </p>
             </div>
             <div>
-              <nav
-                className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
-                aria-label="Pagination"
-              >
-                <button
-                  onClick={() => onPageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                >
-                  <span className="sr-only">Previous</span>
-                  {/* Heroicon: chevron-left */}
-                  <svg
-                    className="h-5 w-5"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
-
-                {/* Page Number Buttons */}
+              <nav className="relative z-0 inline-flex rounded-xl shadow-sm -space-x-px" aria-label="Pagination">
                 {pageNumbers.map((number) => (
                   <button
                     key={number}
                     onClick={() => onPageChange(number)}
-                    aria-current={number === currentPage ? "page" : undefined}
-                    className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                      number === currentPage
-                        ? "z-10 bg-[#1ABC9C] border-[#1ABC9C] text-white"
-                        : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
-                    }`}
+                    className={`relative inline-flex items-center px-4 py-2 border text-sm font-bold transition-all ${number === currentPage
+                      ? "z-10 bg-teal-600 border-teal-600 text-white"
+                      : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
+                      }`}
                   >
                     {number}
                   </button>
                 ))}
-
-                <button
-                  onClick={() => onPageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                >
-                  <span className="sr-only">Next</span>
-                  {/* Heroicon: chevron-right */}
-                  <svg
-                    className="h-5 w-5"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    aria-hidden="true"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
               </nav>
             </div>
           </div>
         </div>
       )}
-      {/* --- END PAGINATION CONTROLS --- */}
     </div>
   );
 }

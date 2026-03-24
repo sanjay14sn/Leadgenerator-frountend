@@ -7,6 +7,7 @@ import {
   CalendarDays,
   ArrowRight,
   Download,
+  Rocket
 } from "lucide-react";
 
 export default function AllLeadsPage() {
@@ -23,6 +24,11 @@ export default function AllLeadsPage() {
     status: "",
   });
 
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [showCampaignModal, setShowCampaignModal] = useState(false);
+  const [campaigns, setCampaigns] = useState([]);
+  const [selectedCampaignId, setSelectedCampaignId] = useState("");
+
   /* ------------------ LOAD DATA ------------------ */
   useEffect(() => {
     loadData();
@@ -31,14 +37,41 @@ export default function AllLeadsPage() {
   async function loadData() {
     setLoading(true);
     try {
-      const res = await API.get("/leads");
-      setAllLeads(res.data || []);
+      const [leadsRes, campRes] = await Promise.all([
+        API.get("/leads"),
+        API.get("/campaigns")
+      ]);
+      setAllLeads(leadsRes.data || []);
+      setCampaigns(campRes.data || []);
     } catch (err) {
       console.error("Error loading leads:", err);
     } finally {
       setLoading(false);
     }
   }
+
+  const addToCampaign = async () => {
+    if (!selectedCampaignId || selectedIds.length === 0) return;
+    try {
+      await API.post(`/campaigns/${selectedCampaignId}/add-leads`, {
+        leadIds: selectedIds
+      });
+      alert(`Successfully added ${selectedIds.length} leads to campaign!`);
+      setSelectedIds([]);
+      setShowCampaignModal(false);
+    } catch (err) {
+      alert("Failed to add leads to campaign");
+    }
+  };
+
+  const handleStatusChange = async (leadId, newStatus) => {
+    try {
+      await API.post(`/leads/${leadId}/update-status`, { status: newStatus });
+      loadData();
+    } catch (err) {
+      console.error("Error updating status:", err);
+    }
+  };
 
   /* ------------------ QUICK DATE FILTER ------------------ */
   const setQuickDate = (daysAgoStart, daysAgoEnd = 0) => {
@@ -139,6 +172,16 @@ export default function AllLeadsPage() {
           >
             <RotateCcw size={16} /> Reset
           </button>
+
+          {selectedIds.length > 0 && (
+            <button
+              onClick={() => setShowCampaignModal(true)}
+              className="flex items-center gap-2 px-6 py-2.5 text-sm font-black text-white bg-slate-900 hover:bg-slate-800 rounded-xl shadow-lg animate-in zoom-in duration-300"
+            >
+              <Rocket size={16} className="text-teal-400" />
+              Add {selectedIds.length} to Campaign
+            </button>
+          )}
         </div>
       </div>
 
@@ -168,17 +211,16 @@ export default function AllLeadsPage() {
                 setFilters({ ...filters, hasWebsite: opt });
                 setCurrentPage(1);
               }}
-              className={`flex-1 py-2 text-xs font-bold uppercase rounded-lg transition ${
-                filters.hasWebsite === opt
-                  ? "bg-blue-600 text-white"
-                  : "text-gray-400 hover:bg-gray-50"
-              }`}
+              className={`flex-1 py-2 text-xs font-bold uppercase rounded-lg transition ${filters.hasWebsite === opt
+                ? "bg-blue-600 text-white"
+                : "text-gray-400 hover:bg-gray-50"
+                }`}
             >
               {opt === "all"
                 ? "All Leads"
                 : opt === "yes"
-                ? "With Web"
-                : "No Web"}
+                  ? "With Web"
+                  : "No Web"}
             </button>
           ))}
         </div>
@@ -201,25 +243,25 @@ export default function AllLeadsPage() {
       </div>
 
       {/* DATE RANGE */}
-      <div className="flex flex-wrap items-center gap-4 bg-white p-3 px-5 rounded-2xl border shadow-sm">
-        <div className="flex items-center gap-2 text-gray-500 font-bold text-xs uppercase border-r pr-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 bg-white p-4 sm:p-3 sm:px-5 rounded-2xl border shadow-sm">
+        <div className="flex items-center gap-2 text-gray-500 font-bold text-xs uppercase sm:border-r sm:pr-4">
           <CalendarDays size={16} className="text-blue-500" />
           Quick Filter
         </div>
 
-        <div className="flex gap-1">
-          <button onClick={() => setQuickDate(0)} className="px-4 py-1.5 text-xs font-bold rounded-lg hover:bg-gray-50">
+        <div className="flex flex-wrap gap-1">
+          <button onClick={() => setQuickDate(0)} className="px-3 sm:px-4 py-1.5 text-[10px] sm:text-xs font-bold rounded-lg hover:bg-gray-50 bg-gray-50 sm:bg-transparent">
             Today
           </button>
-          <button onClick={() => setQuickDate(1, 1)} className="px-4 py-1.5 text-xs font-bold rounded-lg hover:bg-gray-50">
+          <button onClick={() => setQuickDate(1, 1)} className="px-3 sm:px-4 py-1.5 text-[10px] sm:text-xs font-bold rounded-lg hover:bg-gray-50 bg-gray-50 sm:bg-transparent">
             Yesterday
           </button>
-          <button onClick={() => setQuickDate(7)} className="px-4 py-1.5 text-xs font-bold rounded-lg hover:bg-gray-50">
+          <button onClick={() => setQuickDate(7)} className="px-3 sm:px-4 py-1.5 text-[10px] sm:text-xs font-bold rounded-lg hover:bg-gray-50 bg-gray-50 sm:bg-transparent">
             Last 7 Days
           </button>
         </div>
 
-        <div className="flex items-center gap-2 ml-auto">
+        <div className="flex items-center gap-2 sm:ml-auto w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0">
           <input
             type="date"
             value={filters.startDate}
@@ -227,9 +269,9 @@ export default function AllLeadsPage() {
               setFilters({ ...filters, startDate: e.target.value });
               setCurrentPage(1);
             }}
-            className="bg-gray-50 rounded-lg px-3 py-1 text-xs font-semibold"
+            className="bg-gray-50 rounded-lg px-3 py-1.5 text-xs font-semibold flex-1 sm:flex-initial"
           />
-          <ArrowRight size={14} className="text-gray-300" />
+          <ArrowRight size={14} className="text-gray-300 flex-shrink-0" />
           <input
             type="date"
             value={filters.endDate}
@@ -237,7 +279,7 @@ export default function AllLeadsPage() {
               setFilters({ ...filters, endDate: e.target.value });
               setCurrentPage(1);
             }}
-            className="bg-gray-50 rounded-lg px-3 py-1 text-xs font-semibold"
+            className="bg-gray-50 rounded-lg px-3 py-1.5 text-xs font-semibold flex-1 sm:flex-initial"
           />
         </div>
       </div>
@@ -258,9 +300,49 @@ export default function AllLeadsPage() {
             itemsPerPage={itemsPerPage}
             currentPage={currentPage}
             onPageChange={setCurrentPage}
+            onStatusChange={handleStatusChange}
+            selectedIds={selectedIds}
+            onSelectionChange={setSelectedIds}
           />
         )}
       </div>
+
+      {/* CAMPAIGN MODAL */}
+      {showCampaignModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl">
+            <h2 className="text-xl font-black text-slate-900 mb-2">Select Campaign</h2>
+            <p className="text-sm text-slate-500 mb-6">Choose which campaign to add these {selectedIds.length} leads to.</p>
+
+            <select
+              value={selectedCampaignId}
+              onChange={(e) => setSelectedCampaignId(e.target.value)}
+              className="w-full border-2 border-slate-100 rounded-xl p-4 mb-6 focus:border-teal-500 outline-none transition font-bold"
+            >
+              <option value="">Choose a campaign...</option>
+              {campaigns.map(c => (
+                <option key={c._id} value={c._id}>{c.name}</option>
+              ))}
+            </select>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCampaignModal(false)}
+                className="flex-1 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold hover:bg-slate-200 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={addToCampaign}
+                disabled={!selectedCampaignId}
+                className="flex-1 bg-teal-600 text-white py-3 rounded-xl font-bold hover:bg-teal-700 transition disabled:opacity-50"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

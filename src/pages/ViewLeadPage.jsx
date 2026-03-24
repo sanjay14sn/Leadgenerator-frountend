@@ -154,11 +154,10 @@ const WhatsAppChatModal = ({ lead, isLoading, onSend, onClose }) => {
               <button
                 key={t.title}
                 onClick={() => handleTemplateChange(t)}
-                className={`block w-full text-left p-3 rounded-lg mb-2 text-sm transition ${
-                  templateTitle === t.title
+                className={`block w-full text-left p-3 rounded-lg mb-2 text-sm transition ${templateTitle === t.title
                     ? "bg-green-100 text-green-800 font-bold border-2 border-green-400"
                     : "bg-white hover:bg-gray-100 border border-gray-200"
-                }`}
+                  }`}
               >
                 {t.title}
               </button>
@@ -347,29 +346,29 @@ function ViewLeadPage() {
 
   /* ------------------------------ WHATSAPP CHAT LOGIC ------------------------------ */
   // This function is called when the user hits 'Open WhatsApp & Log Action' inside the modal.
-function logAndOpenWhatsapp(message) {
-  // 1️⃣ Clean phone
-  let phone = (lead.phone || "").replace(/\D/g, "");
-  if (phone.length === 10) phone = "91" + phone;
+  function logAndOpenWhatsapp(message) {
+    // 1️⃣ Clean phone
+    let phone = (lead.phone || "").replace(/\D/g, "");
+    if (phone.length === 10) phone = "91" + phone;
 
-  if (phone.length < 11) {
-    alert("Invalid phone number");
-    return;
+    if (phone.length < 11) {
+      alert("Invalid phone number");
+      return;
+    }
+
+    const encodedMsg = encodeURIComponent(message);
+
+    // 2️⃣ OPEN WHATSAPP IMMEDIATELY (SYNC)
+    const whatsappUrl = `https://wa.me/${phone}?text=${encodedMsg}`;
+    window.location.href = whatsappUrl;
+
+    // 3️⃣ LOG IN BACKGROUND (NO AWAIT)
+    API.post(`/leads/${id}/whatsapp-log`, { message })
+      .catch(err => console.error("Log failed", err));
+
+    // 4️⃣ Close modal
+    setShowWhatsappModal(false);
   }
-
-  const encodedMsg = encodeURIComponent(message);
-
-  // 2️⃣ OPEN WHATSAPP IMMEDIATELY (SYNC)
-  const whatsappUrl = `https://wa.me/${phone}?text=${encodedMsg}`;
-  window.location.href = whatsappUrl;
-
-  // 3️⃣ LOG IN BACKGROUND (NO AWAIT)
-  API.post(`/leads/${id}/whatsapp-log`, { message })
-    .catch(err => console.error("Log failed", err));
-
-  // 4️⃣ Close modal
-  setShowWhatsappModal(false);
-}
 
 
   async function goToFollowUp(id) {
@@ -479,9 +478,8 @@ function logAndOpenWhatsapp(message) {
       <div className="flex flex-1 relative">
         {/* TEMPLATE PREVIEW (Left/Full) */}
         <div
-          className={`h-[calc(100vh-68px)] sticky top-[68px] overflow-y-auto border-r border-gray-200 transition-all duration-300 bg-white ${
-            templateFull ? "w-full" : "w-1/2"
-          }`}
+          className={`h-[calc(100vh-68px)] sticky top-[68px] overflow-y-auto border-r border-gray-200 transition-all duration-300 bg-white ${templateFull ? "w-full" : "w-1/2"
+            }`}
         >
           {(() => {
             const Template = selectedTemplate
@@ -615,11 +613,10 @@ function logAndOpenWhatsapp(message) {
                         <div
                           key={index}
                           onClick={() => handleSelectImage(img.image_url)}
-                          className={`flex-shrink-0 w-48 cursor-pointer rounded-lg overflow-hidden transition transform hover:scale-[1.02] shadow-md ${
-                            lead.thumbnail === img.image_url
+                          className={`flex-shrink-0 w-48 cursor-pointer rounded-lg overflow-hidden transition transform hover:scale-[1.02] shadow-md ${lead.thumbnail === img.image_url
                               ? "border-4 border-teal-500 ring-2 ring-teal-500"
                               : "border-2 border-gray-200"
-                          }`}
+                            }`}
                           title={img.prompt}
                         >
                           <img

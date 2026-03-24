@@ -20,6 +20,8 @@ import ChooseTemplatePage from "./pages/ChooseTemplatePage";
 import AIWebsiteBuilder from "./pages/AIWebsiteBuilder";
 import AIPoster from "./pages/AIPoster";
 import SmartQuotes from "./pages/SmartQuotes";
+import CampaignDashboard from "./pages/CampaignDashboard";
+import CampaignControlPanel from "./pages/CampaignControlPanel";
 
 /* ---------- ROUTE GUARD ---------- */
 import PrivateRoute from "./routes/PrivateRoute";
@@ -47,6 +49,8 @@ export default function App() {
           <Route path="/instaleads" element={<InstaLeads />} />
           <Route path="/aiposter" element={<AIPoster />} />
           <Route path="/quotes" element={<SmartQuotes />} />
+          <Route path="/campaigns" element={<CampaignDashboard />} />
+          <Route path="/campaigns/:id" element={<CampaignControlPanel />} />
 
           {/* 🔐 SUPER ADMIN ONLY */}
           <Route
@@ -62,6 +66,7 @@ export default function App() {
           <Route path="/leads/:id/edit" element={<ViewLeadPage />} />
           <Route path="/leads/:id/templates" element={<ChooseTemplatePage />} />
           <Route path="/leads/:id/ai-builder" element={<AIWebsiteBuilder />} />
+          <Route path="/leads/:id/aiposter" element={<AIPoster />} />
 
           {/* 👥 ADMIN */}
           <Route path="/admin/teammates" element={<TeammatesPage />} />

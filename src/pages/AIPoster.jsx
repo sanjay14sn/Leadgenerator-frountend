@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useParams } from "react-router-dom";
 import API from "../api/api";
 import { motion, AnimatePresence } from "framer-motion";
 import html2canvas from "html2canvas";
@@ -100,13 +101,14 @@ const DEMO_BACKGROUNDS = [
 ];
 
 export default function AIPosterStudio() {
+  const { id } = useParams();
   const [formData, setFormData] = useState({
     prompt: "luxury modern salon poster background, soft lighting, gold theme",
-    title: "Elegance Beauty Studio",
-    subtitle: "Grand Opening — 30% OFF",
-    badge: "Grand Opening",
-    location: "Anna Nagar, Chennai",
-    phone: "+91 98765 43210",
+    title: "",
+    subtitle: "",
+    badge: "",
+    location: "",
+    phone: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -117,7 +119,7 @@ export default function AIPosterStudio() {
   const [showHistory, setShowHistory] = useState(false);
   const posterRef = useRef(null);
 
-  // Load history from localStorage on mount
+  // Load history from localStorage and fetch lead data on mount
   useEffect(() => {
     const saved = localStorage.getItem("posterHistory");
     if (saved) {
@@ -127,7 +129,27 @@ export default function AIPosterStudio() {
         console.error("Failed to load history", e);
       }
     }
-  }, []);
+
+    if (id) {
+      fetchLeadData();
+    }
+  }, [id]);
+
+  async function fetchLeadData() {
+    try {
+      const res = await API.get(`/leads/${id}`);
+      const lead = res.data;
+      setFormData(prev => ({
+        ...prev,
+        title: lead.name || "",
+        location: lead.location || "",
+        phone: lead.phone || "",
+        subtitle: lead.industry ? `${lead.industry} — Transforming Your Business` : "Special Offer — Limited Time",
+      }));
+    } catch (err) {
+      console.error("Failed to fetch lead data", err);
+    }
+  }
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -165,11 +187,16 @@ export default function AIPosterStudio() {
     try {
       // Try API first
       const res = await API.post("/generate-custom-posters", { ...formData });
-      setGeneratedImages(res.data.posters || []);
-      setSelectedIndex(0);
+      const posters = res.data.posters || [];
 
-      // Save to history
-      savePosterToHistory(res.data.posters[0]);
+      if (posters.length > 0) {
+        setGeneratedImages(posters);
+        setSelectedIndex(0);
+        // Save to history
+        savePosterToHistory(posters[0]);
+      } else {
+        throw new Error("No posters generated");
+      }
     } catch (err) {
       console.warn("API failed, using demo mode", err);
 

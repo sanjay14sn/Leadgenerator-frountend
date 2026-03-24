@@ -1,4 +1,5 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import {
   Plus,
   Trash2,
@@ -22,6 +23,7 @@ import {
   Type,
 } from "lucide-react";
 import jsPDF from "jspdf";
+import API from "../api/api";
 
 const PREDEFINED_TEMPLATES = [
   {
@@ -104,10 +106,10 @@ const hexToRgb = (hex) => {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return result
     ? [
-        parseInt(result[1], 16),
-        parseInt(result[2], 16),
-        parseInt(result[3], 16),
-      ]
+      parseInt(result[1], 16),
+      parseInt(result[2], 16),
+      parseInt(result[3], 16),
+    ]
     : [0, 0, 0];
 };
 
@@ -525,7 +527,7 @@ export default function SmartQuotes() {
   const [quoteDetails, setQuoteDetails] = useState({
     number: `Q-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 1000)).padStart(3, "0")}`,
     status: "DRAFT",
-    currency: "$",
+    currency: "₹",
     taxLabel: "Tax",
     taxRate: 10,
     discountType: "percent",
@@ -545,12 +547,63 @@ export default function SmartQuotes() {
       .split("T")[0],
   });
 
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.lead) {
+      const { lead } = location.state;
+      setClientDetails(prev => ({
+        ...prev,
+        name: lead.name || "",
+        email: lead.email || "",
+        address: lead.address || "",
+      }));
+    }
+  }, [location.state]);
+
   const [items, setItems] = useState([
     { id: 1, description: "Consultation Service", quantity: 1, price: 200 },
   ]);
 
   const [showSettings, setShowSettings] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
+
+  // --- AI INPUT STATE ---
+  const [aiInput, setAiInput] = useState({
+    totalPrice: "",
+    duration: "",
+    projectType: "",
+  });
+
+  const handleAiEnhance = async () => {
+    if (!aiInput.totalPrice || !aiInput.projectType) {
+      alert("Please enter at least Total Price and Project Type.");
+      return;
+    }
+
+    setIsEnhancing(true);
+    try {
+      const res = await fetch(`${API.defaults.baseURL}/ai/generate-quote-items`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(aiInput),
+      });
+
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      // Auto-populate
+      setItems(data.items.map((it, idx) => ({ ...it, id: Date.now() + idx })));
+      setQuoteDetails(prev => ({ ...prev, notes: data.scope }));
+
+    } catch (err) {
+      console.error("AI Enhancement failed:", err);
+      alert("AI Enhancement failed. Please try again.");
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
 
   // --- CALCULATIONS ---
   const subtotal = items.reduce(
@@ -645,13 +698,13 @@ export default function SmartQuotes() {
     if (brand.banner) {
       try {
         doc.addImage(brand.banner, "JPEG", 0, 0, 210, 40);
-      } catch {}
+      } catch { }
     }
 
     if (brand.logo) {
       try {
         doc.addImage(brand.logo, "JPEG", 20, 10, 30, 15);
-      } catch {}
+      } catch { }
     } else {
       doc.setFontSize(24);
       doc.setTextColor(...primaryColor);
@@ -854,15 +907,14 @@ export default function SmartQuotes() {
               <span>•</span>
               <span
                 className={`px-2 py-0.5 rounded-full font-bold text-[10px] uppercase tracking-wide
-                ${
-                  quoteDetails.status === "APPROVED"
+                ${quoteDetails.status === "APPROVED"
                     ? "bg-green-100 text-green-700"
                     : quoteDetails.status === "SENT"
                       ? "bg-blue-100 text-blue-700"
                       : quoteDetails.status === "REJECTED"
                         ? "bg-red-100 text-red-700"
                         : "bg-gray-100 text-gray-600"
-                }`}
+                  }`}
               >
                 {quoteDetails.status}
               </span>
@@ -906,6 +958,73 @@ export default function SmartQuotes() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* LEFT COMPONENT - BUILDER */}
         <div className="lg:col-span-2 space-y-6">
+          {/* AI BUILDER SECTION */}
+          <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-6 border border-indigo-500/30 shadow-2xl relative overflow-hidden group mb-6">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Calculator size={120} className="text-indigo-400 rotate-12" />
+            </div>
+
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-6">
+                <div className="bg-indigo-500 p-2 rounded-lg">
+                  <Calculator size={20} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white tracking-tight">AI Quote Strategist</h3>
+                  <p className="text-indigo-200 text-[10px] uppercase font-bold tracking-widest opacity-70">Powered by Gemini Agent</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                <div className="md:col-span-4 space-y-1.5">
+                  <label className="text-xs font-bold text-indigo-200/60 uppercase tracking-wider ml-1">Project Type</label>
+                  <input
+                    placeholder="e.g. Web Development"
+                    value={aiInput.projectType}
+                    onChange={(e) => setAiInput({ ...aiInput, projectType: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-400 transition placeholder:text-white/20"
+                  />
+                </div>
+                <div className="md:col-span-3 space-y-1.5">
+                  <label className="text-xs font-bold text-indigo-200/60 uppercase tracking-wider ml-1">Total Budget</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-3 text-indigo-300 font-bold">{quoteDetails.currency}</span>
+                    <input
+                      type="number"
+                      placeholder="30000"
+                      value={aiInput.totalPrice}
+                      onChange={(e) => setAiInput({ ...aiInput, totalPrice: e.target.value })}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl p-3 pl-8 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-400 transition placeholder:text-white/20 font-mono"
+                    />
+                  </div>
+                </div>
+                <div className="md:col-span-5 space-y-1.5">
+                  <label className="text-xs font-bold text-indigo-200/60 uppercase tracking-wider ml-1">Timeline (Days)</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      placeholder="15"
+                      value={aiInput.duration}
+                      onChange={(e) => setAiInput({ ...aiInput, duration: e.target.value })}
+                      className="flex-1 bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-400 transition placeholder:text-white/20 font-mono"
+                    />
+                    <button
+                      onClick={handleAiEnhance}
+                      disabled={isEnhancing}
+                      className="px-6 py-3 bg-indigo-500 hover:bg-indigo-400 disabled:bg-slate-700 text-white rounded-xl font-bold text-xs uppercase tracking-widest transition shadow-lg shadow-indigo-500/20 flex items-center gap-2 whitespace-nowrap"
+                    >
+                      {isEnhancing ? (
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        "🚀 Enhance"
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* 1. Client & Date Details */}
           <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
             <h3 className="font-bold text-gray-700 flex items-center gap-2 text-sm uppercase tracking-wider">

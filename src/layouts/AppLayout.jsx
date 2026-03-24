@@ -11,6 +11,7 @@ const getCurrentTitle = (pathname) => {
   if (pathname === "/cloudflare") return "Cloudflare Management";
   if (pathname === "/quotes") return "Smart Quotes Builder";
   if (pathname === "/aiposter") return "AI Poster Management";
+  if (pathname === "/campaigns") return "Lead Outreach Campaigns";
   return "IQSync Dashboard";
 };
 
@@ -67,8 +68,14 @@ export default function AppLayout() {
         </div>
 
         <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate("/admin/teammates")}
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-white/20 text-white rounded-lg hover:bg-white/30 transition font-bold text-sm border border-white/30"
+          >
+            👥 Team Hub
+          </button>
           <button className="text-white">🔔</button>
-          <div className="flex items-center gap-2 border-l pl-4">
+          <div className="flex items-center gap-2 border-l border-white/20 pl-4">
             <div className="h-10 w-10 bg-white rounded-full flex items-center justify-center font-bold text-[#1ABC9C]">
               AU
             </div>
@@ -99,6 +106,7 @@ export default function AppLayout() {
           <HorizontalNavItem label="Insta (BETA)" active={location.pathname === "/instaleads"} onClick={() => navigate("/instaleads")} />
           <HorizontalNavItem label="Cloudflare" active={location.pathname === "/cloudflare"} onClick={() => navigate("/cloudflare")} />
           <HorizontalNavItem label="AI Poster" active={location.pathname === "/aiposter"} onClick={() => navigate("/aiposter")} />
+          <HorizontalNavItem label="Campaigns" active={location.pathname === "/campaigns"} onClick={() => navigate("/campaigns")} />
         </div>
       </nav>
 

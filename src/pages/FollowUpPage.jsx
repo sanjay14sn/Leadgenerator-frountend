@@ -43,50 +43,40 @@ const getActionDisplay = (h) => {
 const getStatusColor = (status) => {
   switch (status) {
     case "INTERESTED":
-      return "bg-green-100 text-green-800";
+      return "bg-emerald-50 text-emerald-700 border-emerald-100";
     case "NOT_INTERESTED":
-      return "bg-red-100 text-red-800";
+      return "bg-rose-50 text-rose-700 border-rose-100";
     case "NOT_REACHABLE":
-      return "bg-orange-100 text-orange-800";
+      return "bg-amber-50 text-amber-700 border-amber-100";
     case "COMPLETED":
-      return "bg-purple-100 text-purple-800";
-    case "PENDING":
+      return "bg-blue-50 text-blue-700 border-blue-100";
     default:
-      return "bg-blue-100 text-blue-800";
+      return "bg-slate-50 text-slate-600 border-slate-200";
   }
 };
 
-// Helper to determine and display schedule status
 const getScheduleStatus = (lead) => {
   if (!lead.next_followup_date) {
-    return <span className="text-gray-500 text-xs italic">No Schedule</span>;
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-500">
+        No Schedule
+      </span>
+    );
   }
 
   const date = new Date(lead.next_followup_date);
-  const now = Date.now();
-  const isOverdue = date.getTime() < now;
-
-  if (isOverdue) {
-    return (
-      <span className="text-red-600 font-semibold text-xs">
-        OVERDUE ({date.toLocaleDateString()})
-      </span>
-    );
-  }
-
-  const diffDays = Math.floor((date.getTime() - now) / 86400000);
-
-  if (diffDays === 0) {
-    return (
-      <span className="text-green-600 font-semibold text-xs">
-        TODAY (
-        {date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })})
-      </span>
-    );
-  }
+  const now = new Date();
+  const isOverdue = date < now;
 
   return (
-    <span className="text-blue-600 text-xs">{date.toLocaleDateString()}</span>
+    <div className="flex flex-col">
+      <span className={`text-[11px] font-bold ${isOverdue ? "text-rose-600" : "text-emerald-600 flex items-center gap-1"}`}>
+        {isOverdue ? "⚠️ OVERDUE" : "📅 UPCOMING"}
+      </span>
+      <span className="text-[10px] text-gray-500 font-medium">
+        {date.toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' })}
+      </span>
+    </div>
   );
 };
 
@@ -98,6 +88,7 @@ const getScheduleStatus = (lead) => {
    LEAD DETAIL MODAL
 ------------------------------------------------- */
 function LeadDetailModal({ id, onClose, onSaved }) {
+  const navigate = useNavigate();
   const [lead, setLead] = useState(null);
   const [note, setNote] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -120,22 +111,22 @@ function LeadDetailModal({ id, onClose, onSaved }) {
     if (id) fetchLead();
   }, [id, fetchLead]);
 
-async function addNote() {
-  if (!note.trim()) return;
+  async function addNote() {
+    if (!note.trim()) return;
 
-  try {
-    await API.post(`/leads/${id}/add-note`, {
-      message: note.trim(),
-    });
+    try {
+      await API.post(`/leads/${id}/add-note`, {
+        message: note.trim(),
+      });
 
-    setNote("");
-    await fetchLead();
-    onSaved?.();
-    setActiveTab("Timeline");
-  } catch (error) {
-    console.error("Failed to add note:", error);
+      setNote("");
+      await fetchLead();
+      onSaved?.();
+      setActiveTab("Timeline");
+    } catch (error) {
+      console.error("Failed to add note:", error);
+    }
   }
-}
 
   async function changeStatus(status) {
     await API.post(`/leads/${id}/update-status`, { status });
@@ -224,10 +215,10 @@ async function addNote() {
             </div>
           );
         }) || (
-        <p className="text-gray-500 text-sm italic">
-          No follow-up history yet.
-        </p>
-      )}
+          <p className="text-gray-500 text-sm italic">
+            No follow-up history yet.
+          </p>
+        )}
     </div>
   );
 
@@ -281,11 +272,10 @@ async function addNote() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`py-2 px-4 font-semibold ${
-                activeTab === tab
-                  ? "border-b-4 border-[#1ABC9C] text-[#1ABC9C]"
-                  : "text-gray-600 hover:text-gray-800"
-              }`}
+              className={`py-2 px-4 font-semibold ${activeTab === tab
+                ? "border-b-4 border-[#1ABC9C] text-[#1ABC9C]"
+                : "text-gray-600 hover:text-gray-800"
+                }`}
             >
               {tab}
             </button>
@@ -325,6 +315,12 @@ async function addNote() {
             className="px-3 py-1 bg-purple-100 text-purple-800 rounded text-sm hover:bg-purple-200 transition"
           >
             Completed
+          </button>
+          <button
+            onClick={() => navigate("/quotes", { state: { lead: { name: lead.name, email: lead.email, address: lead.address } } })}
+            className="px-3 py-1 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700 transition flex items-center gap-1 shadow-md shadow-indigo-100"
+          >
+            <span>📄</span> Send Quote
           </button>
         </div>
       </div>
@@ -510,6 +506,10 @@ export default function FollowUpPage() {
   const [leadToAssign, setLeadToAssign] = useState(null);
   const [leadToSchedule, setLeadToSchedule] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [leadStatusMenuId, setLeadStatusMenuId] = useState(null);
+  const itemsPerPage = 10;
 
   const navigate = useNavigate();
 
@@ -523,7 +523,7 @@ export default function FollowUpPage() {
       ]);
 
       const sentLeads = leadsRes.data.filter(
-        (l) => l.followup?.last_whatsapp_sent
+        (l) => l.followup?.last_whatsapp_sent || l.next_followup_date
       );
       setAllLeads(sentLeads);
       setTeammates(teammatesRes.data);
@@ -543,6 +543,13 @@ export default function FollowUpPage() {
     return allLeads.filter((lead) => {
       const currentStatus = lead.followup?.status || "PENDING";
       const isAssigned = !!lead.assigned_to_id;
+      const targetSearch = searchTerm.toLowerCase();
+      const matchesSearch =
+        lead.name?.toLowerCase().includes(targetSearch) ||
+        lead.phone?.toLowerCase().includes(targetSearch) ||
+        lead.industry?.toLowerCase().includes(targetSearch);
+
+      if (!matchesSearch) return false;
 
       // Status Filter
       if (statusFilter !== "ALL" && currentStatus !== statusFilter) {
@@ -567,303 +574,355 @@ export default function FollowUpPage() {
 
       return true;
     });
-  }, [allLeads, statusFilter, assignmentFilter]);
+  }, [allLeads, statusFilter, assignmentFilter, searchTerm]);
+
+  const currentLeads = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage;
+    return filteredLeads.slice(start, start + itemsPerPage);
+  }, [filteredLeads, currentPage]);
+
+  const totalPages = Math.ceil(filteredLeads.length / itemsPerPage);
 
   function sendWhatsApp(id) {
     API.post(`/leads/${id}/whatsapp-log`);
     setTimeout(loadData, 500);
   }
 
-  // Helper to find the assigned agent name (Uses the fetched 'teammates' array)
+  async function handleStatusChange(id, status) {
+    try {
+      await API.post(`/leads/${id}/update-status`, { status });
+      setLeadStatusMenuId(null);
+      await loadData();
+    } catch (error) {
+      console.error("Failed to update status:", error);
+    }
+  }
+
+  // Helper to find the assigned agent name
   const getAssignedAgentName = (lead) => {
-    if (!lead.assigned_to_id)
-      return <span className="text-gray-500 italic">Unassigned</span>;
+    if (!lead.assigned_to_id) return "Unassigned";
     const agent = teammates.find((t) => t._id === lead.assigned_to_id);
-    return agent ? (
-      <span className="font-semibold text-indigo-600">{agent.name}</span>
-    ) : (
-      <span className="text-gray-500 italic">Unknown Agent</span>
-    );
+    return agent ? agent.name : "Unknown Agent";
   };
 
   return (
-    <div className="min-h-screen bg-[#F9FBF9] relative">
-      {/* NAV BAR */}
-      <nav className="px-6 py-4 bg-white shadow flex justify-between sticky top-0 z-10">
-        <h1 className="text-2xl font-bold text-[#1ABC9C]">
-          Follow-up Dashboard
-        </h1>
-
-        <div className="flex gap-2 relative items-center">
-          {/* Back & Refresh buttons */}
-          <button
-            onClick={() => navigate("/")}
-            className="bg-[#1ABC9C] text-white px-4 py-2 rounded hover:bg-teal-700"
-          >
-            ← Back
-          </button>
-
-          <button
-            onClick={loadData}
-            className="border px-4 py-2 rounded hover:bg-gray-100"
-          >
-            {isLoading ? "Refreshing..." : "Refresh"}
-          </button>
-
-          {/* Status Filter */}
-          <div className="relative">
-            <button
-              onClick={() => setShowStatusMenu(!showStatusMenu)}
-              className="border px-4 py-2 bg-white rounded hover:bg-gray-100 flex items-center"
-            >
-              Status:
-              <span className="font-bold ml-1">
-                {statusFilter.replace("_", " ")}
-              </span>
-              ⌄
-            </button>
-            {showStatusMenu && (
-              <div className="absolute right-0 top-full mt-2 bg-white border shadow-lg rounded w-48 z-20">
-                {[
-                  "ALL",
-                  "PENDING",
-                  "INTERESTED",
-                  "NOT_INTERESTED",
-                  "NOT_REACHABLE",
-                  "COMPLETED",
-                ].map((s) => (
-                  <button
-                    key={s}
-                    className="block w-full text-left px-3 py-2 hover:bg-[#1ABC9C] hover:text-white"
-                    onClick={() => {
-                      setStatusFilter(s);
-                      setShowStatusMenu(false);
-                    }}
-                  >
-                    {s.replace("_", " ")}
-                  </button>
-                ))}
-              </div>
-            )}
+    <div className="min-h-screen bg-[#F8FAFC] relative">
+      <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
+        {/* HEADER & FILTERS */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex-1 max-w-md relative group">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[#1ABC9C] transition-colors">🔍</span>
+            <input
+              type="text"
+              placeholder="Search by name, phone or industry..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-teal-500/5 focus:border-[#1ABC9C] transition-all shadow-sm font-medium text-gray-700"
+            />
           </div>
 
-          {/* Assignment Filter */}
-          <div className="relative">
-            <button
-              onClick={() => setShowAssignmentMenu(!showAssignmentMenu)}
-              className="border px-4 py-2 bg-white rounded hover:bg-gray-100 flex items-center"
-            >
-              Assignment:
-              <span className="font-bold ml-1">
-                {assignmentFilter === "ALL"
-                  ? "All"
-                  : assignmentFilter === "ASSIGNED"
-                  ? "Assigned"
-                  : assignmentFilter === "UNASSIGNED"
-                  ? "Unassigned"
-                  : teammates.find((t) => t._id === assignmentFilter)?.name ||
-                    "Agent"}
-              </span>
-              ⌄
-            </button>
-            {showAssignmentMenu && (
-              <div className="absolute right-0 top-full mt-2 bg-white border shadow-lg rounded w-48 z-20">
-                <button
-                  className="block w-full text-left px-3 py-2 hover:bg-[#1ABC9C] hover:text-white font-bold"
-                  onClick={() => {
-                    setAssignmentFilter("ALL");
-                    setShowAssignmentMenu(false);
-                  }}
-                >
-                  All Leads
-                </button>
-                <button
-                  className="block w-full text-left px-3 py-2 hover:bg-[#1ABC9C] hover:text-white"
-                  onClick={() => {
-                    setAssignmentFilter("ASSIGNED");
-                    setShowAssignmentMenu(false);
-                  }}
-                >
-                  Assigned Only
-                </button>
-                <button
-                  className="block w-full text-left px-3 py-2 hover:bg-[#1ABC9C] hover:text-white border-b mb-1"
-                  onClick={() => {
-                    setAssignmentFilter("UNASSIGNED");
-                    setShowAssignmentMenu(false);
-                  }}
-                >
-                  Unassigned Only
-                </button>
+          <div className="flex items-center gap-3">
+            {/* Status Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setShowStatusMenu(!showStatusMenu);
+                  setShowAssignmentMenu(false);
+                }}
+                className="px-4 py-3 bg-white border border-gray-200 rounded-2xl hover:bg-gray-50 flex items-center gap-2 text-sm font-bold text-gray-700 shadow-sm transition-all"
+              >
+                <span>🎯</span>
+                Status:
+                <span className="text-[#1ABC9C]">
+                  {statusFilter === "ALL" ? "All" : statusFilter.replace("_", " ")}
+                </span>
+                <span className="text-[10px] opacity-40">▼</span>
+              </button>
+              {showStatusMenu && (
+                <div className="absolute right-0 top-full mt-2 bg-white border border-gray-100 shadow-2xl rounded-2xl w-56 z-50 py-2 overflow-hidden animate-in fade-in zoom-in duration-200">
+                  {["ALL", "PENDING", "INTERESTED", "NOT_INTERESTED", "NOT_REACHABLE", "COMPLETED"].map((s) => (
+                    <button
+                      key={s}
+                      className={`block w-full text-left px-5 py-3 text-sm transition ${statusFilter === s ? "bg-teal-50 text-[#1ABC9C] font-bold" : "text-gray-600 hover:bg-gray-200"}`}
+                      onClick={() => {
+                        setStatusFilter(s);
+                        setShowStatusMenu(false);
+                        setCurrentPage(1);
+                      }}
+                    >
+                      {s.replace("_", " ")}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
-                <p className="text-xs text-gray-500 px-3 pt-1">
-                  Filter by Agent:
-                </p>
-                {teammates
-                  .filter(t => t.role === "AGENT" && t.isActive)
-
-                  .map((t) => (
+            {/* Assignment Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setShowAssignmentMenu(!showAssignmentMenu);
+                  setShowStatusMenu(false);
+                }}
+                className="px-4 py-3 bg-white border border-gray-200 rounded-2xl hover:bg-gray-50 flex items-center gap-2 text-sm font-bold text-gray-700 shadow-sm transition-all"
+              >
+                <span>👤</span>
+                Assign:
+                <span className="text-indigo-600">
+                  {assignmentFilter === "ALL" ? "All" : assignmentFilter === "ASSIGNED" ? "Assigned" : assignmentFilter === "UNASSIGNED" ? "Unassigned" : teammates.find(t => t._id === assignmentFilter)?.name || "Agent"}
+                </span>
+                <span className="text-[10px] opacity-40">▼</span>
+              </button>
+              {showAssignmentMenu && (
+                <div className="absolute right-0 top-full mt-2 bg-white border border-gray-100 shadow-2xl rounded-2xl w-64 z-50 py-2 overflow-hidden animate-in fade-in zoom-in duration-200 max-h-[400px] overflow-y-auto">
+                  <button
+                    className={`block w-full text-left px-5 py-3 text-sm transition border-b border-gray-50 ${assignmentFilter === "ALL" ? "bg-indigo-50 text-indigo-600 font-bold" : "text-gray-600 hover:bg-gray-50"}`}
+                    onClick={() => { setAssignmentFilter("ALL"); setShowAssignmentMenu(false); setCurrentPage(1); }}
+                  >
+                    All Leads
+                  </button>
+                  <button
+                    className={`block w-full text-left px-5 py-3 text-sm transition ${assignmentFilter === "ASSIGNED" ? "bg-indigo-50 text-indigo-600 font-bold" : "text-gray-600 hover:bg-gray-50"}`}
+                    onClick={() => { setAssignmentFilter("ASSIGNED"); setShowAssignmentMenu(false); setCurrentPage(1); }}
+                  >
+                    Assigned Only
+                  </button>
+                  <button
+                    className={`block w-full text-left px-5 py-3 text-sm transition border-b border-gray-50 mb-1 ${assignmentFilter === "UNASSIGNED" ? "bg-indigo-50 text-indigo-600 font-bold" : "text-gray-600 hover:bg-gray-50"}`}
+                    onClick={() => { setAssignmentFilter("UNASSIGNED"); setShowAssignmentMenu(false); setCurrentPage(1); }}
+                  >
+                    Unassigned Only
+                  </button>
+                  {teammates.filter(t => t.role === "AGENT" && t.isActive).map((t) => (
                     <button
                       key={t._id}
-                      className="block w-full text-left px-3 py-1 hover:bg-[#1ABC9C] hover:text-white text-sm"
-                      onClick={() => {
-                        setAssignmentFilter(t._id);
-                        setShowAssignmentMenu(false);
-                      }}
+                      className={`block w-full text-left px-5 py-2.5 text-sm transition ${assignmentFilter === t._id ? "bg-indigo-50 text-indigo-600 font-bold" : "text-gray-600 hover:bg-gray-50"}`}
+                      onClick={() => { setAssignmentFilter(t._id); setShowAssignmentMenu(false); setCurrentPage(1); }}
                     >
                       {t.name}
                     </button>
                   ))}
-              </div>
-            )}
+                </div>
+              )}
+            </div>
           </div>
-
-          {/* Team Management Button */}
-          <button
-            onClick={() => navigate("/admin/teammates")}
-            className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 font-semibold"
-          >
-            👥 Team Hub
-          </button>
         </div>
-      </nav>
 
-      {/* LEAD LIST TABLE STYLE */}
-      <div className="p-6 max-w-7xl mx-auto">
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          {/* Table Header */}
-          <div className="grid grid-cols-12 bg-gray-100 p-4 font-bold text-gray-700 border-b">
-            <div className="col-span-3">Lead Name</div>
-            <div className="col-span-2">Status</div>
-            <div className="col-span-2">Assigned To</div>
-            <div className="col-span-2">Next Follow-up</div>
-            <div className="col-span-3 text-right">Actions</div>
-          </div>
+        {/* Lead List Section */}
+        <div className="space-y-3">
+          {isLoading && (
+            <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1ABC9C] mb-4"></div>
+              <p className="text-gray-500 font-medium">Loading your leads...</p>
+            </div>
+          )}
 
-          {/* Lead Rows */}
-          <div className="min-h-[400px]">
-            {isLoading && (
-              <p className="p-10 text-center text-lg text-gray-600">
-                Loading leads...
-              </p>
-            )}
-            {!isLoading && filteredLeads.length === 0 && (
-              <p className="p-10 text-center text-lg text-gray-600">
-                No leads match the current filter criteria.
-              </p>
-            )}
+          {!isLoading && currentLeads.length === 0 && (
+            <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
+              <p className="text-gray-400">No leads found in this view.</p>
+            </div>
+          )}
 
-            {filteredLeads.map((lead) => (
-              <div
-                key={lead._id}
-                className="grid grid-cols-12 items-center p-4 border-b hover:bg-gray-50 transition duration-150"
-              >
-                <div className="col-span-3">
-                  <span
-                    className="font-semibold text-lg text-gray-800 cursor-pointer hover:text-[#1ABC9C] transition"
+          {currentLeads.map((lead) => (
+            <div
+              key={lead._id}
+              className="group bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-xl hover:shadow-teal-900/5 hover:border-teal-100 transition-all duration-300 relative"
+            >
+              {/* Vertical Accent Bar */}
+              <div className={`absolute top-0 left-0 bottom-0 w-1 ${lead.next_followup_date && new Date(lead.next_followup_date) < new Date()
+                ? "bg-rose-500"
+                : "bg-emerald-500"
+                }`} />
+
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                {/* 1. Lead Info (Flexible) */}
+                <div className="flex-1 min-w-0">
+                  <h3
+                    className="font-bold text-lg text-gray-900 truncate hover:text-[#1ABC9C] cursor-pointer transition leading-tight mb-1"
                     onClick={() => setSelectedLeadId(lead._id)}
                   >
                     {lead.name}
-                  </span>
-                  <div className="text-xs text-gray-500">{lead.phone}</div>
-                  <div className="text-xs text-gray-400 mt-1">
-                    Last sent:{" "}
-                    {new Date(
-                      lead.followup.last_whatsapp_sent
-                    ).toLocaleDateString()}
+                  </h3>
+
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
+                      <span className="text-gray-400">📞</span>
+                      {lead.phone}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500">
+                      <span className="text-gray-300">#</span>
+                      {lead.industry || "General Lead"}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
+                      <span className="opacity-50">Sync:</span>
+                      <span className="text-gray-500">{new Date(lead.followup.last_whatsapp_sent).toLocaleDateString("en-GB", { day: '2-digit', month: 'short' })}</span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="col-span-2">
-                  <span
-                    className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                      lead.followup?.status || "PENDING"
-                    )}`}
-                  >
-                    {(lead.followup?.status || "PENDING").replace("_", " ")}
-                  </span>
+                {/* 2. Agent Section (Fixed Width) */}
+                <div className="w-full md:w-40 flex-shrink-0">
+                  <p className="text-[10px] uppercase font-black text-gray-300 tracking-wider mb-1">Agent</p>
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-[11px] font-black text-indigo-600">
+                      {getAssignedAgentName(lead).charAt(0)}
+                    </div>
+                    <span className="text-sm font-bold text-gray-700 truncate">{getAssignedAgentName(lead)}</span>
+                  </div>
                 </div>
 
-                <div className="col-span-2">
-                  {getAssignedAgentName(lead)} {/* 👈 Displays Agent Name */}
-                </div>
-
-                {/* Next Follow-up Column */}
-                <div className="col-span-2 flex flex-col items-start">
+                {/* 3. Follow-up Goal (Fixed Width) */}
+                <div className="w-full md:w-44 flex-shrink-0">
+                  <p className="text-[10px] uppercase font-black text-gray-300 tracking-wider mb-1">Follow-up Goal</p>
                   {getScheduleStatus(lead)}
-                  {lead.next_followup_note && (
-                    <span
-                      className="text-xs text-gray-400 line-clamp-1 mt-0.5"
-                      title={lead.next_followup_note}
-                    >
-                      {lead.next_followup_note}
-                    </span>
-                  )}
                 </div>
 
-                <div className="col-span-3 text-right space-x-2">
-                  {/* Assign Button */}
+                {/* 4. Actions (Fixed Right) */}
+                <div className="w-full md:w-auto flex flex-wrap items-center justify-start md:justify-end gap-2">
                   <button
                     onClick={() => setLeadToAssign(lead)}
-                    className="px-3 py-1 border rounded text-sm text-indigo-600 border-indigo-300 hover:bg-indigo-50 transition"
+                    className="p-2.5 bg-gray-50 text-gray-500 rounded-xl hover:bg-white hover:text-indigo-600 hover:border-indigo-200 transition-all border border-gray-100 shadow-sm"
+                    title="Assign Lead"
                   >
-                    {lead.assigned_to_id ? "Re-Assign" : "Assign"}
+                    👤
                   </button>
-                  {/* Schedule Button */}
                   <button
                     onClick={() => setLeadToSchedule(lead)}
-                    className="px-3 py-1 border rounded text-sm text-red-600 border-red-300 hover:bg-red-50 transition"
+                    className="p-2.5 bg-gray-50 text-gray-500 rounded-xl hover:bg-white hover:text-rose-600 hover:border-rose-200 transition-all border border-gray-100 shadow-sm"
+                    title="Schedule Follow-up"
                   >
-                    <CalendarIcon className="w-4 h-4 inline mr-1" />
-                    Schedule
+                    <CalendarIcon className="w-4 h-4" />
                   </button>
-                  {/* WhatsApp Button */}
+
+                  {/* Pipeline Dropdown */}
+                  <div className="relative inline-block text-left">
+                    <button
+                      onClick={() => setLeadStatusMenuId(leadStatusMenuId === lead._id ? null : lead._id)}
+                      className={`min-w-[140px] h-10 flex items-center justify-between px-4 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all border shadow-sm ${getStatusColor(lead.followup?.status || "PENDING")}`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span>🔄</span>
+                        {(lead.followup?.status || "PENDING").replace("_", " ")}
+                      </span>
+                      <span className="text-[8px] opacity-40 ml-2">▼</span>
+                    </button>
+                    {leadStatusMenuId === lead._id && (
+                      <div className="absolute right-0 top-full mt-2 bg-white border border-gray-100 shadow-2xl rounded-2xl w-48 z-[9999] py-2 animate-in fade-in zoom-in duration-200 ring-4 ring-black/5">
+                        {["PENDING", "CONTACTED", "INTERESTED", "NOT_INTERESTED", "NOT_REACHABLE", "COMPLETED"].map((s) => (
+                          <button
+                            key={s}
+                            className={`block w-full text-left px-5 py-3 text-[11px] font-bold transition ${lead.followup?.status === s ? "bg-[#1ABC9C]/10 text-[#1ABC9C]" : "text-gray-600 hover:bg-gray-50"}`}
+                            onClick={() => handleStatusChange(lead._id, s)}
+                          >
+                            {s.replace("_", " ")}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* WhatsApp Action */}
                   <a
                     href={`${API.defaults.baseURL}/leads/w/${lead._id}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => sendWhatsApp(lead._id)}
-                    className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition"
+                    className="p-2.5 bg-[#1ABC9C] text-white rounded-xl hover:bg-[#16a085] transition shadow-lg shadow-teal-500/20 border border-teal-400 group"
+                    title="Send WhatsApp"
                   >
-                    WA Link
+                    <span className="group-hover:scale-125 transition-transform block">💬</span>
                   </a>
                 </div>
               </div>
-            ))}
-          </div>
+
+              {/* Latest Note (Subtle but Readable Footer) */}
+              {lead.next_followup_note && (
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <p className="text-xs text-gray-500 leading-relaxed font-medium flex items-center gap-2">
+                    <span className="text-[10px] uppercase font-black text-gray-300 tracking-widest bg-gray-50 px-2 py-0.5 rounded">Note</span>
+                    <span className="italic text-gray-600">"{lead.next_followup_note}"</span>
+                  </p>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="bg-white/80 backdrop-blur-sm px-6 py-5 flex items-center justify-between rounded-3xl border border-gray-100 shadow-lg shadow-gray-200/50">
+            <div className="hidden sm:block">
+              <p className="text-xs text-gray-500 font-medium">
+                Showing <span className="font-bold text-gray-900">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-bold text-gray-900">{Math.min(currentPage * itemsPerPage, filteredLeads.length)}</span> of <span className="font-bold text-gray-900">{filteredLeads.length}</span> leads
+              </p>
+            </div>
+            <div className="flex-1 sm:flex-none flex justify-center gap-1">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-2 rounded-lg border text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:hover:bg-transparent transition"
+              >
+                Prev
+              </button>
+              {[...Array(totalPages)].map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrentPage(i + 1)}
+                  className={`px-3 py-2 rounded-lg text-xs font-bold transition ${currentPage === i + 1 ? "bg-[#1ABC9C] text-white shadow-md ring-2 ring-teal-100" : "border text-gray-500 hover:bg-gray-50"}`}
+                >
+                  {i + 1}
+                </button>
+              )).filter((_, i) => {
+                // Basic windowing for pagination
+                if (totalPages <= 5) return true;
+                if (i === 0 || i === totalPages - 1) return true;
+                return Math.abs(i - (currentPage - 1)) <= 1;
+              })}
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-2 rounded-lg border text-xs font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-30 disabled:hover:bg-transparent transition"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* MODALS */}
+
+        {/* 1. Lead Detail Modal */}
+        {selectedLeadId && (
+          <LeadDetailModal
+            id={selectedLeadId}
+            onClose={() => setSelectedLeadId(null)}
+            onSaved={loadData}
+          />
+        )}
+
+        {/* 2. Assignment Modal */}
+        {leadToAssign && (
+          <AssignmentModal
+            leadId={leadToAssign._id}
+            leadName={leadToAssign.name}
+            teammates={teammates}
+            onClose={() => setLeadToAssign(null)}
+            onAssigned={loadData}
+          />
+        )}
+
+        {/* 3. Schedule Modal */}
+        {leadToSchedule && (
+          <ScheduleModal
+            lead={leadToSchedule}
+            onClose={() => setLeadToSchedule(null)}
+            onScheduled={loadData}
+          />
+        )}
       </div>
-
-      {/* MODALS */}
-
-      {/* 1. Lead Detail Modal */}
-      {selectedLeadId && (
-        <LeadDetailModal
-          id={selectedLeadId}
-          onClose={() => setSelectedLeadId(null)}
-          onSaved={loadData}
-        />
-      )}
-
-      {/* 2. Assignment Modal */}
-      {leadToAssign && (
-        <AssignmentModal
-          leadId={leadToAssign._id}
-          leadName={leadToAssign.name}
-          teammates={teammates}
-          onClose={() => setLeadToAssign(null)}
-          onAssigned={loadData}
-        />
-      )}
-
-      {/* 3. Schedule Modal */}
-      {leadToSchedule && (
-        <ScheduleModal
-          lead={leadToSchedule}
-          onClose={() => setLeadToSchedule(null)}
-          onScheduled={loadData}
-        />
-      )}
     </div>
   );
 }
