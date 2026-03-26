@@ -13,7 +13,9 @@ import {
     Zap,
     Loader2,
     Globe,
-    Monitor
+    Monitor,
+    Trash2,
+    XCircle,
 } from "lucide-react";
 import API from "../api/api";
 import { motion, AnimatePresence } from "framer-motion";
@@ -28,6 +30,11 @@ export default function CampaignControlPanel() {
     const [sendIndex, setSendIndex] = useState(-1);
     const logContainerRef = useRef(null);
 
+    // Refs for safe access in dynamic batches
+    const leadsRef = useRef([]);
+    const campaignRef = useRef(null);
+    const isSendingRef = useRef(false);
+
     useEffect(() => {
         loadData();
         const interval = setInterval(loadData, 5000);
@@ -35,10 +42,12 @@ export default function CampaignControlPanel() {
     }, [id]);
 
     useEffect(() => {
+        leadsRef.current = leads;
+        campaignRef.current = campaign;
         if (logContainerRef.current) {
             logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
         }
-    }, [leads]);
+    }, [leads, campaign]);
 
     async function loadData() {
         try {
@@ -65,48 +74,141 @@ export default function CampaignControlPanel() {
         }
     }
 
-    // --- BATCH SENDING LOGIC ---
+    async function handleDeleteCampaign() {
+        if (!window.confirm("Are you sure you want to delete this campaign? Associated leads will be reset.")) return;
+        try {
+            await API.delete(`/campaigns/${id}`);
+            navigate("/campaigns");
+        } catch (err) {
+            alert("Failed to delete campaign");
+        }
+    }
+
+    const getWhatsAppLink = (lead) => {
+        let phone = lead.phone.replace(/\D/g, "");
+        if (phone.startsWith("0")) phone = phone.substring(1);
+        if (phone.length === 10) phone = "91" + phone;
+
+        const message = `Hi ${lead.name} 👋
+
+We created a website preview for your business:
+
+${lead.web_url}
+
+Today, most customers search online before contacting a business.  
+A professional website helps you get more enquiries and build trust.
+
+If you like this demo, we can complete your full website within 1 day — fully mobile-friendly 📱
+
+No obligation — just sharing.
+
+Reply YES if you'd like us to customize it 👍`;
+
+        return `https://web.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
+    }
+
+    const handleManualSend = async (lead) => {
+        try {
+            const waUrl = getWhatsAppLink(lead);
+            window.open(waUrl, `ManualWA_${lead._id}`);
+
+            await API.patch(`/leads/${lead._id}`, {
+                campaign_status: "pending"
+            });
+
+            setLeads(prev => prev.map(l => l._id === lead._id ? { ...l, campaign_status: "pending" } : l));
+        } catch (err) {
+            console.error("Manual send failed:", err);
+            alert("Failed to update lead status");
+        }
+    };
+
+    // --- DYNAMIC BATCH SENDING LOGIC ---
     const startBatchSending = async () => {
-        const sentLeads = leads.filter(l => l.campaign_status === "sent");
-        if (!sentLeads.length) {
-            alert("No leads are ready for sending yet.");
+        if (isSending) {
+            console.log("🛑 Stopping batch sending...");
+            setIsSending(false);
+            isSendingRef.current = false;
+            return;
+        }
+
+        console.log("🚀 Batch sending started (Continuous Mode)");
+
+        // ✅ Open once (important to avoid popup blocking)
+        let waWindow = window.open("", "WhatsAppBatchWindow");
+
+        if (!waWindow) {
+            console.error("❌ Popup blocked");
+            alert("Popup blocked! Please allow popups for this site and try again.");
             return;
         }
 
         setIsSending(true);
+        isSendingRef.current = true;
 
-        for (let i = 0; i < sentLeads.length; i++) {
+        while (isSendingRef.current) {
+            const currentLeads = leadsRef.current;
+            const nextLead = currentLeads.find(l => l.campaign_status === "sent");
+
+            if (!nextLead) {
+                console.log("⏳ No leads ready for sending. Waiting 5s...");
+                setSendIndex(-1);
+                if (campaignRef.current?.status === "paused") {
+                    console.log("⏸ Campaign paused. Stopping batch sender.");
+                    break;
+                }
+                await new Promise(resolve => setTimeout(resolve, 5000));
+                continue;
+            }
+
+            const i = currentLeads.indexOf(nextLead);
             setSendIndex(i);
-            const lead = sentLeads[i];
 
-            // 1. Generate WhatsApp Link
-            const message = `Hi ${lead.name},\n\nWe created a website for your business 👇\n${lead.web_url}\n\nWould you like us to customize it for you?`;
-            let phone = lead.phone.replace(/\D/g, "");
-            if (phone.length === 10) phone = "91" + phone;
-            const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+            console.log(`➡️ Processing lead:`, nextLead.name);
 
-            // 2. Open WhatsApp
-            window.open(waUrl, "_blank");
+            const waUrl = getWhatsAppLink(nextLead);
 
-            // 3. Update Status to "pending" (meaning we've handed it to the user)
+            // Ultra-Stable Navigation: Re-use/update named window
+            waWindow = window.open(waUrl, "WhatsAppBatchWindow");
+
+            if (!waWindow) {
+                console.error("❌ Popup lost");
+                alert("WhatsApp window was closed or blocked. Stopping.");
+                isSendingRef.current = false;
+                break;
+            }
+            waWindow.focus();
+
+            console.log(`🌐 WhatsApp opened for ${nextLead.name}`);
+
+            await new Promise(resolve => setTimeout(resolve, 8000));
+
             try {
-                await API.patch(`/leads/${lead._id}`, { campaign_status: "pending" });
-            } catch (e) { console.error(e); }
+                await API.patch(`/leads/${nextLead._id}`, {
+                    campaign_status: "pending"
+                });
+                console.log(`✅ Status updated → pending (${nextLead.name})`);
+            } catch (e) {
+                console.error("Status update error:", e);
+            }
 
-            // 4. Wait for user to be ready for next one
-            await new Promise(resolve => setTimeout(resolve, 15000)); // 15s delay between leads
+            const randomDelay = Math.random() * (25000 - 18000) + 18000;
+            console.log(`⏱ Waiting ${Math.round(randomDelay / 1000)}s before next check`);
+            await new Promise(resolve => setTimeout(resolve, randomDelay));
         }
 
+        console.log("🚀 Batch sending cycle terminated");
         setIsSending(false);
+        isSendingRef.current = false;
         setSendIndex(-1);
-        alert("Batch sending cycle complete!");
     };
+
 
     if (loading || !campaign) {
         return <div className="flex items-center justify-center h-screen"><Loader2 className="animate-spin text-teal-600 w-10 h-10" /></div>;
     }
 
-    const sortedLeads = [...leads].sort((a, b) => new Date(b.process_at || 0) - new Date(a.process_at || 0));
+    const sortedLeads = [...leads].sort((a, b) => new Date(b.process_at || 0) - new Date(a.process_at || 0) || new Date(b.updatedAt) - new Date(a.updatedAt));
 
     return (
         <div className="space-y-6 max-w-6xl mx-auto pb-20">
@@ -146,11 +248,19 @@ export default function CampaignControlPanel() {
 
                     <button
                         onClick={startBatchSending}
-                        disabled={isSending}
-                        className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black flex items-center gap-2 shadow-lg shadow-slate-900/20 hover:scale-105 transition disabled:opacity-50"
+                        className={`px-8 py-4 rounded-2xl font-black flex items-center gap-2 shadow-lg transition ${isSending ? "bg-red-500 text-white shadow-red-500/20" : "bg-slate-900 text-white shadow-slate-900/20 hover:scale-105"
+                            }`}
                     >
-                        {isSending ? <Loader2 className="animate-spin" /> : <Zap size={20} className="text-yellow-400 fill-yellow-400" />}
-                        {isSending ? "Processing..." : "Batch Send WhatsApp"}
+                        {isSending ? <XCircle size={20} /> : <Zap size={20} className="text-yellow-400 fill-yellow-400" />}
+                        {isSending ? "Stop Sending" : "Batch Send WhatsApp"}
+                    </button>
+
+                    <button
+                        onClick={handleDeleteCampaign}
+                        className="p-4 bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 transition shadow-lg shadow-red-600/10"
+                        title="Delete Campaign"
+                    >
+                        <Trash2 size={24} />
                     </button>
                 </div>
             </div>
@@ -180,19 +290,72 @@ export default function CampaignControlPanel() {
                     <div ref={logContainerRef} className="flex-1 overflow-y-auto space-y-2 scrollbar-hide">
                         {sortedLeads.length === 0 && <div className="text-slate-600 italic">Waiting for leads to enter the queue...</div>}
                         {sortedLeads.map((lead, idx) => (
-                            <div key={lead._id} className="animate-in slide-in-from-left duration-300">
-                                <span className="text-slate-600">[{new Date(lead.process_at || lead.updatedAt).toLocaleTimeString()}]</span>
-                                <span className="text-blue-400 font-bold ml-2">{lead.name}</span>
-                                <span className="ml-2">→</span>
-                                {lead.campaign_status === "queued" && <span className="text-yellow-400 ml-2">QUEUED (Staged for {new Date(lead.process_at).toLocaleTimeString()})</span>}
-                                {lead.campaign_status === "processing" && <span className="text-blue-400 ml-2 animate-pulse font-bold flex items-center gap-2 inline-flex">ARCHITECTING SITE... <Loader2 size={12} className="animate-spin" /></span>}
-                                {lead.campaign_status === "sent" && (
-                                    <span className="text-green-400 ml-2 font-bold flex items-center gap-2 inline-flex">
-                                        DONE: <a href={lead.web_url} target="_blank" className="underline flex items-center gap-1">{lead.web_url} <ExternalLink size={12} /></a>
-                                    </span>
-                                )}
-                                {lead.campaign_status === "pending" && <span className="text-slate-500 ml-2">WHATSAPP OPENED ✅</span>}
-                                {lead.campaign_status === "error" && <span className="text-red-400 ml-2 font-bold flex items-center gap-2 inline-flex underline decoration-dotted">ERROR: {lead.last_error} <AlertCircle size={14} /></span>}
+                            <div key={lead._id} className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-4 transition hover:bg-slate-800/60 group animate-in slide-in-from-left duration-300">
+                                <div className="flex items-start justify-between gap-4">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                                                {new Date(lead.process_at || lead.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                            <span className="w-1 h-1 rounded-full bg-slate-700" />
+                                            <span className="text-blue-400 font-black truncate">{lead.name}</span>
+                                        </div>
+
+                                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                            {lead.campaign_status === "queued" && (
+                                                <div className="flex items-center gap-2 text-yellow-500/80 text-xs font-bold bg-yellow-500/5 px-2 py-0.5 rounded-full border border-yellow-500/10">
+                                                    <Clock size={12} /> QUEUED
+                                                </div>
+                                            )}
+                                            {lead.campaign_status === "processing" && (
+                                                <div className="flex items-center gap-2 text-blue-400 text-xs font-bold bg-blue-400/5 px-2 py-0.5 rounded-full border border-blue-400/10">
+                                                    <Loader2 size={12} className="animate-spin" /> ARCHITECTING...
+                                                </div>
+                                            )}
+                                            {lead.campaign_status === "sent" && (
+                                                <div className="flex items-center gap-2 text-green-400 text-xs font-bold bg-green-400/5 px-2 py-0.5 rounded-full border border-green-400/10">
+                                                    <CheckCircle2 size={12} /> READY
+                                                </div>
+                                            )}
+                                            {lead.campaign_status === "pending" && (
+                                                <div className="flex items-center gap-2 text-slate-400 text-xs font-bold bg-slate-400/5 px-2 py-0.5 rounded-full border border-slate-400/10">
+                                                    <MessageSquare size={12} /> WHATSAPP OPENED ✅
+                                                </div>
+                                            )}
+                                            {lead.campaign_status === "error" && (
+                                                <div className="flex items-center gap-2 text-red-400 text-xs font-bold bg-red-400/5 px-2 py-0.5 rounded-full border border-red-400/10">
+                                                    <AlertCircle size={12} /> ERROR
+                                                </div>
+                                            )}
+
+                                            {lead.web_url && (
+                                                <a
+                                                    href={lead.web_url}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="text-[10px] text-slate-500 hover:text-teal-400 transition flex items-center gap-1 underline decoration-dotted"
+                                                >
+                                                    View Site <ExternalLink size={10} />
+                                                </a>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-col items-end gap-2 shrink-0">
+                                        {(lead.campaign_status === "sent" || lead.campaign_status === "pending") && (
+                                            <button
+                                                onClick={() => handleManualSend(lead)}
+                                                className={`px-4 py-2 rounded-xl text-xs font-black shadow-lg transition flex items-center gap-2 ${lead.campaign_status === "sent"
+                                                        ? "bg-teal-600 text-white shadow-teal-600/20 hover:bg-teal-500"
+                                                        : "bg-slate-700 text-slate-200 border border-slate-600 hover:bg-slate-600"
+                                                    }`}
+                                            >
+                                                <MessageSquare size={14} />
+                                                {lead.campaign_status === "sent" ? "Send WhatsApp Manual" : "Re-send WhatsApp"}
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         ))}
                     </div>

@@ -12,6 +12,7 @@ import {
     MessageSquare,
     BarChart3,
     Users,
+    Trash2,
 } from "lucide-react";
 import API from "../api/api";
 import { motion, AnimatePresence } from "framer-motion";
@@ -75,6 +76,16 @@ export default function CampaignDashboard() {
         }
     }
 
+    async function handleDeleteCampaign(id) {
+        if (!window.confirm("Are you sure you want to delete this campaign? Associated leads will be reset.")) return;
+        try {
+            await API.delete(`/campaigns/${id}`);
+            setCampaigns(campaigns.filter((c) => c._id !== id));
+        } catch (err) {
+            alert("Failed to delete campaign");
+        }
+    }
+
     if (loading && !campaigns.length) {
         return (
             <div className="flex items-center justify-center h-[60vh]">
@@ -127,7 +138,7 @@ export default function CampaignDashboard() {
             {/* CAMPAIGN LIST */}
             <div className="grid grid-cols-1 gap-4">
                 {campaigns.map((campaign) => (
-                    <CampaignCard key={campaign._id} campaign={campaign} onToggle={toggleCampaign} />
+                    <CampaignCard key={campaign._id} campaign={campaign} onToggle={toggleCampaign} onDelete={handleDeleteCampaign} />
                 ))}
                 {campaigns.length === 0 && (
                     <div className="bg-white border-2 border-dashed border-slate-200 rounded-2xl p-12 text-center text-slate-400">
@@ -189,7 +200,7 @@ function StatCard({ title, value, icon, color }) {
     );
 }
 
-function CampaignCard({ campaign, onToggle }) {
+function CampaignCard({ campaign, onToggle, onDelete }) {
     const progress = campaign.total_leads > 0 ? (campaign.processed_count / campaign.total_leads) * 100 : 0;
     const navigate = useNavigate();
 
@@ -218,6 +229,12 @@ function CampaignCard({ campaign, onToggle }) {
                         className="p-2 bg-slate-50 text-slate-600 rounded-xl hover:bg-slate-100 transition"
                     >
                         <ExternalLink size={20} />
+                    </button>
+                    <button
+                        onClick={() => onDelete(campaign._id)}
+                        className="p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition"
+                    >
+                        <Trash2 size={20} />
                     </button>
                 </div>
             </div>

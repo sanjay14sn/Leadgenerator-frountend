@@ -1,6 +1,6 @@
-// src/layouts/AppLayout.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import API from "../api/api";
 
 /* ------------------ HELPERS ------------------ */
 const getCurrentTitle = (pathname) => {
@@ -33,6 +33,61 @@ export default function AppLayout() {
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  const [searchTerm, setSearchTerm] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (!searchTerm.trim() || searchTerm.length < 2) {
+      setSuggestions([]);
+      setShowDropdown(false);
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      setIsFetching(true);
+      try {
+        const res = await API.get("/leads");
+        const allLeads = res.data || [];
+        const term = searchTerm.toLowerCase();
+        const filtered = allLeads.filter(l =>
+          l.name?.toLowerCase().includes(term) ||
+          l.email?.toLowerCase().includes(term) ||
+          l.category?.toLowerCase().includes(term) ||
+          l.website?.toLowerCase().includes(term)
+        ).slice(0, 8); // Top 8 suggestions
+
+        setSuggestions(filtered);
+        setShowDropdown(true);
+      } catch (err) {
+        console.error("Error fetching suggestions:", err);
+      } finally {
+        setIsFetching(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm]);
+
+  const handleSearch = (e) => {
+    if (e.key === "Enter" && searchTerm.trim()) {
+      navigate(`/all-leads?search=${encodeURIComponent(searchTerm.trim())}`);
+      setShowDropdown(false);
+    }
+  };
+
   const topBarHeight = "64px";
   const secondaryNavHeight = "56px";
   const currentTitle = getCurrentTitle(location.pathname);
@@ -61,10 +116,57 @@ export default function AppLayout() {
             IQSync
           </h1>
 
-          <input
-            placeholder="Search leads..."
-            className="hidden md:block w-96 p-2 rounded-lg text-sm"
-          />
+          <div className="relative" ref={dropdownRef}>
+            <input
+              placeholder="Search leads..."
+              className="hidden md:block w-96 p-2 rounded-lg text-sm text-gray-800 outline-none focus:ring-2 focus:ring-white/50"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={handleSearch}
+              onFocus={() => suggestions.length > 0 && setShowDropdown(true)}
+            />
+
+            {showDropdown && (suggestions.length > 0 || isFetching) && (
+              <div className="absolute top-full left-0 w-full mt-1 bg-white rounded-lg shadow-2xl border z-50 max-h-[400px] overflow-y-auto">
+                {isFetching && suggestions.length === 0 ? (
+                  <div className="p-4 text-center text-xs text-gray-400">Searching...</div>
+                ) : (
+                  <>
+                    {suggestions.map((lead) => (
+                      <button
+                        key={lead._id}
+                        onClick={() => {
+                          navigate(`/leads/${lead._id}/edit`);
+                          setShowDropdown(false);
+                          setSearchTerm("");
+                        }}
+                        className="w-full text-left px-4 py-3 hover:bg-teal-50 border-b last:border-b-0 flex flex-col transition"
+                      >
+                        <span className="font-bold text-gray-900 text-sm">{lead.name}</span>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded font-bold uppercase truncate max-w-[100px]">
+                            {lead.category || "No Category"}
+                          </span>
+                          <span className="text-xs text-gray-400 truncate">{lead.email || "No Email"}</span>
+                        </div>
+                      </button>
+                    ))}
+                    {suggestions.length > 0 && (
+                      <button
+                        onClick={() => {
+                          navigate(`/all-leads?search=${encodeURIComponent(searchTerm)}`);
+                          setShowDropdown(false);
+                        }}
+                        className="w-full text-center py-2 text-xs font-bold text-teal-600 hover:bg-gray-50 border-t"
+                      >
+                        See all results for "{searchTerm}"
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-4">

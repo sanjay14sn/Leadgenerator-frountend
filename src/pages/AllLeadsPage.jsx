@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import API from "../api/api";
 import LeadTable from "../components/LeadTable";
 import {
@@ -16,13 +17,24 @@ export default function AllLeadsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  const [searchParams] = useSearchParams();
+  const initialSearch = searchParams.get("search") || "";
+
   const [filters, setFilters] = useState({
-    search: "",
+    search: initialSearch,
     startDate: "",
     endDate: "",
     hasWebsite: "all",
     status: "",
   });
+
+  useEffect(() => {
+    const s = searchParams.get("search");
+    if (s !== null) {
+      setFilters((prev) => ({ ...prev, search: s }));
+      setCurrentPage(1);
+    }
+  }, [searchParams]);
 
   const [selectedIds, setSelectedIds] = useState([]);
   const [showCampaignModal, setShowCampaignModal] = useState(false);
